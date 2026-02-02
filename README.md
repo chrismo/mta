@@ -1,0 +1,144 @@
+# MTA - Multi-Ticket Assistance
+
+Context management for coordinated multi-Claude work sessions using [SuperDB](https://superdb.org/).
+
+## Problem
+
+When multiple Claude sessions work on the same ticket, they need shared context:
+- What decisions were made?
+- Who's currently working on it?
+- What blockers exist?
+- What tasks remain?
+
+## Solution
+
+Store coordination data in `.sup` files (SuperDB format) with a CLI for all operations:
+
+```bash
+mta-context.sh create-context DEVOPS-1641 "Replace Oban scaler"
+mta-context.sh join DEVOPS-1641 ds5/session-abc
+mta-context.sh add-decision DEVOPS-1641 "Using bc for ceiling calc"
+mta-context.sh add-task DEVOPS-1641 "Add retry logic"
+mta-context.sh status DEVOPS-1641
+mta-context.sh leave DEVOPS-1641 ds5/session-abc done "implemented scaling"
+```
+
+## Why SuperDB?
+
+- Relational model with multiple files (contexts, sessions, decisions, tasks, blockers)
+- SQL-like queries for joins and aggregations
+- Appending records is just appending lines
+- Query across all tickets: "show me all unresolved blockers"
+
+## Installation
+
+### Prerequisites
+
+- [SuperDB](https://superdb.org/) (`super` CLI)
+- Bash 4+
+
+```bash
+# macOS
+brew install brimdata/tap/super
+
+# Or via asdf
+asdf plugin add superdb https://github.com/chrismo/asdf-superdb.git
+asdf install superdb latest
+asdf global superdb latest
+```
+
+### Install mta-context.sh
+
+```bash
+# Clone and add to PATH
+git clone https://github.com/chrismo/mta.git
+export PATH="$PATH:$(pwd)/mta/bin"
+
+# Or copy to your bin
+cp mta/bin/mta-context.sh ~/.local/bin/
+```
+
+## Usage
+
+### Context Management
+
+```bash
+mta-context.sh create-context <ticket> <title> [--linear-url=...] [--branch=...] [--worktree=...]
+mta-context.sh list-contexts
+mta-context.sh get-context <ticket>
+mta-context.sh archive <ticket>
+```
+
+### Session Management
+
+```bash
+mta-context.sh join <ticket> <session-id>
+mta-context.sh leave <ticket> <session-id> <status> [note]
+mta-context.sh list-sessions [ticket]
+```
+
+### Decisions, Tasks, Blockers
+
+```bash
+mta-context.sh add-decision <ticket> <text>
+mta-context.sh list-decisions <ticket>
+
+mta-context.sh add-task <ticket> <text>
+mta-context.sh complete-task <ticket> <pattern>
+mta-context.sh list-tasks [ticket] [--pending]
+
+mta-context.sh add-blocker <ticket> <text>
+mta-context.sh resolve-blocker <ticket> <pattern>
+mta-context.sh list-blockers [--unresolved]
+```
+
+### Status
+
+```bash
+mta-context.sh status [ticket]  # Full overview
+```
+
+## Data Storage
+
+Data is stored in `~/.claude/contexts/` as `.sup` files:
+
+```
+~/.claude/contexts/
+├── contexts.sup    # Parent records for each ticket
+├── sessions.sup    # Active/historical sessions
+├── decisions.sup   # Decision log with timestamps
+├── tasks.sup       # Outstanding tasks
+└── blockers.sup    # Active blockers
+```
+
+Override with `MTA_CONTEXTS_DIR` environment variable.
+
+## Claude Code Skills
+
+The `skills/` directory contains Claude Code skill definitions for:
+- `/mta:join` - Join a shared context
+- `/mta:leave` - Deregister from context
+- `/mta:update` - Record decisions and tasks
+- `/mta:read` - Read current context state
+
+Copy to your Claude Code skills directory to use as slash commands.
+
+## Running Tests
+
+```bash
+# Install bats-core
+brew install bats-core  # macOS
+apt install bats        # Linux
+
+# Run tests
+cd test
+bats mta-context.bats
+```
+
+## Schema
+
+See [skills/sup-refactor.md](skills/sup-refactor.md) for the full schema specification.
+
+## License
+
+MIT
