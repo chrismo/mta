@@ -40,10 +40,16 @@ Full overview of all coordinated work - use this to plan your day.
 
 6. Correlate: which conversations map to which contexts
 
-7. Output a unified status showing:
+7. **Review open PRs** from `yah data` output:
+   - Match PRs to active contexts/worktrees by branch name
+   - Flag PRs needing attention: approved but not merged, changes requested, stale (no updates in 7+ days)
+   - Note any PRs not tied to an active context (forgotten work)
+
+8. Output a unified status showing:
    - Active coordinated efforts (tickets with contexts)
    - Worktrees and their coordination status
    - Blockers or dependencies between efforts
+   - Open PR status
 
 ## Output Format
 
@@ -53,6 +59,17 @@ Full overview of all coordinated work - use this to plan your day.
 ### Active Coordinations
 - **DEVOPS-1641**: 3 sessions (ds5/92e7df7e, ds5/a1b2c3d4, ds8/x9y8z7w6) | 5 decisions | no blockers
 - **INCIDENT-cloudflare**: 1 session (ds4/f3e2d1c0) | 1 decision | blocking DEVOPS-1641
+
+### Open PRs
+**Needs action:**
+- #12345 "Fix auth flow" — APPROVED, ready to merge
+- #12350 "Add caching" — CHANGES REQUESTED (3d ago)
+
+**In flight:**
+- #12360 "New feature" — REVIEW REQUIRED (draft)
+
+**Stale (7+ days no update):**
+- #11200 "Old experiment" — no activity since Jan 15
 
 ### Uncoordinated Worktrees
 - ds9: devops-1670-experiment-with-multi-workflows (no shared context)

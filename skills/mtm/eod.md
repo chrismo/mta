@@ -42,12 +42,21 @@ Wind down coordinated work across Claude sessions.
    mta-context.sh list-blockers --unresolved
    ```
 
-5. **Output summary**:
+5. **Review open PRs** from `yah data 7`:
+   - Flag approved PRs not yet merged (could merge before EOD)
+   - Flag PRs with changes requested (need follow-up tomorrow)
+   - Note any PRs updated today that are still awaiting review
+
+6. **Output summary**:
    ```
    ## End of Day
 
    ### Uncommitted Changes
    - (none) or list worktrees needing commits
+
+   ### PRs to Act On
+   - #12345 "Fix auth" — APPROVED, merge before EOD?
+   - #12350 "Add caching" — CHANGES REQUESTED, follow up tomorrow
 
    ### Coordinated Work
    - DEVOPS-1641: [status summary] | Tomorrow: [next steps]

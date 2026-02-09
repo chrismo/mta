@@ -520,7 +520,7 @@ cmd_archive() {
 }
 
 cmd_help() {
-  cat <<EOF
+  less -FX <<EOF
 mta-context.sh - MTA context management via SuperDB
 
 Usage: mta-context.sh <command> [args]

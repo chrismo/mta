@@ -38,6 +38,10 @@ Lightweight mid-day check of coordinated work and today's activity.
 
 5. Run `yah conversations 0` (today only) for quick session overview
 
+6. Quick PR check from `yah data 0`:
+   - Only flag PRs needing immediate action (approved, changes requested)
+   - Skip the full PR breakdown (that's for start-day)
+
 ## Output Format
 
 ```
@@ -49,6 +53,10 @@ Lightweight mid-day check of coordinated work and today's activity.
 
 ### Blockers
 - INCIDENT-cloudflare blocking DEVOPS-1641
+
+### PRs Needing Action
+- #12345 "Fix auth" — APPROVED, ready to merge
+- #12350 "Add caching" — CHANGES REQUESTED
 
 ### Today's Sessions
 (output from yah conversations 0)
