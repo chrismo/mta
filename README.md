@@ -113,15 +113,49 @@ Data is stored in `~/.claude/contexts/` as `.sup` files:
 
 Override with `MTA_CONTEXTS_DIR` environment variable.
 
+## Getting Started
+
+### 1. Add `bin/` to PATH
+
+```bash
+# In .zshrc or .bashrc
+export PATH="$HOME/modev/mta/bin:$PATH"
+```
+
+### 2. Add skills to Claude Code
+
+Add the MTA `skills/` directory as a skills source in your Claude Code settings. This registers all `/mta:*` and `/mtm:*` slash commands.
+
+### 3. Verify
+
+```bash
+# Check mta-context.sh is available
+which mta-context.sh
+
+# Check super CLI is installed
+super --version
+```
+
+### Transition from brain repo
+
+If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/skills/mta/` and `ai-agents/claude/skills/mtm/`), remove those skill sources to avoid conflicts. Independent skills like `yah`, `plan`, and `review` stay in the brain repo.
+
 ## Claude Code Skills
 
-The `skills/` directory contains Claude Code skill definitions for:
+### MTA (Worker Skills)
 - `/mta:join` - Join a shared context
-- `/mta:leave` - Deregister from context
-- `/mta:update` - Record decisions and tasks
 - `/mta:read` - Read current context state
+- `/mta:update` - Record decisions and tasks
+- `/mta:leave` - Deregister from context
+- `/mta:dupe` - Spawn a duplicate worker on the same ticket
 
-Copy to your Claude Code skills directory to use as slash commands.
+### MTM (Manager Skills)
+- `/mtm:status` - Quick mid-day status check
+- `/mtm:start-day` - Full morning overview
+- `/mtm:eod` - End of day wrap-up
+- `/mtm:new-context` - Create a new shared context
+- `/mtm:archive` - Archive a completed context
+- `/mtm:slot` - Generate a claude-slot command for a ticket
 
 ## Running Tests
 

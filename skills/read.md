@@ -91,8 +91,3 @@ mta-context.sh list-blockers --unresolved
 # Active sessions
 mta-context.sh list-sessions <TICKET>
 ```
-
-## Script Location
-
-The `mta-context.sh` script is at `~/brain/ai-agents/claude/bin/mta-context.sh`.
-You may need to use the full path or ensure it's in PATH.
