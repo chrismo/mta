@@ -26,8 +26,8 @@ Location: `~/.claude/contexts/`
 ### contexts.sup
 The parent record for each coordination effort.
 ```
-{ticket:"DEVOPS-1641",title:"Replace Oban scaler",created:"2026-01-27T16:32:00Z",linear_url:"https://linear.app/...",branch:"devops-1641-...",worktree:"ds5"}
-{ticket:"DEVOPS-1670",title:"CI multi-workflow experiment",created:"2026-01-29T09:00:00Z",linear_url:"...",branch:"...",worktree:"ds9"}
+{ticket:"DEVOPS-1641",title:"Replace Oban scaler",created:"2026-01-27T16:32:00Z",ticket_url:"https://linear.app/...",branch:"devops-1641-...",worktree:"ds5"}
+{ticket:"DEVOPS-1670",title:"CI multi-workflow experiment",created:"2026-01-29T09:00:00Z",ticket_url:"...",branch:"...",worktree:"ds9"}
 ```
 
 ### sessions.sup
@@ -91,7 +91,7 @@ super -c "from 'decisions.sup' | where ts > '2026-01-28T00:00:00Z' | sort ts des
 mta-context.sh <command> [args]
 
 # Context management
-mta-context.sh create-context <ticket> <title> [--linear-url=...] [--branch=...] [--worktree=...]
+mta-context.sh create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
 mta-context.sh list-contexts
 mta-context.sh get-context <ticket>
 

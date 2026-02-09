@@ -28,11 +28,11 @@ load test_helper
 
 @test "create-context accepts optional flags" {
   run mta create-context DEVOPS-1641 "Replace Oban scaler" \
-    --linear-url="https://linear.app/team/DEVOPS-1641" \
+    --ticket-url="https://linear.app/team/DEVOPS-1641" \
     --branch="devops-1641-oban" \
     --worktree="ds5"
   assert_success
-  assert_file_contains "contexts.sup" "linear_url:\"https://linear.app/team/DEVOPS-1641\""
+  assert_file_contains "contexts.sup" "ticket_url:\"https://linear.app/team/DEVOPS-1641\""
   assert_file_contains "contexts.sup" "branch:\"devops-1641-oban\""
   assert_file_contains "contexts.sup" "worktree:\"ds5\""
 }

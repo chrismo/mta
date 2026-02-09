@@ -29,16 +29,9 @@ Register this Claude session as part of a coordinated effort on a ticket.
    ```
    - If not, offer to create it with `mta-context.sh create-context`
 
-3. Extract your session identifier:
-   - Your scratchpad path contains your session UUID (e.g., `/private/tmp/claude/.../92e7df7e-aa72-45e9-8817-08e921750403/scratchpad`)
-   - Extract the UUID from your scratchpad path in the system prompt
-   - Use the first 8 characters as a short identifier
-   - Worktree name: `git rev-parse --show-toplevel | xargs basename`
-   - Combined identifier: `<worktree>/<short-uuid>` (e.g., `ds5/92e7df7e`)
-
-4. Register this session:
+3. Register this session (session ID is auto-detected):
    ```bash
-   mta-context.sh join <TICKET> <worktree>/<short-uuid>
+   mta-context.sh join <TICKET>
    ```
 
 5. Display current status:
@@ -77,5 +70,5 @@ This will initialize the context in ~/.claude/contexts/
 
 If user confirms:
 ```bash
-mta-context.sh create-context <TICKET> "<title>" [--linear-url=...] [--branch=...] [--worktree=...]
+mta-context.sh create-context <TICKET> "<title>" [--ticket-url=...] [--branch=...] [--worktree=...]
 ```

@@ -34,7 +34,7 @@ When the goal is achieved, archive the context.
 
 2. Create the context:
    ```bash
-   mta-context.sh create-context <GOAL-NAME> "<title>" [--linear-url=...] [--branch=...] [--worktree=...]
+   mta-context.sh create-context <GOAL-NAME> "<title>" [--ticket-url=...] [--branch=...] [--worktree=...]
    ```
 
 ## Output
@@ -52,4 +52,4 @@ Workers can now:
 ## Notes
 
 If no title is provided, ask the user for a brief description.
-For Linear tickets, optionally include the `--linear-url` flag.
+Optionally include `--ticket-url` to link to the ticket tracker.

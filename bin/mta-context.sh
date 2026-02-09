@@ -36,6 +36,29 @@ require_super() {
   fi
 }
 
+# Detect session ID from Claude Code conversation files.
+# Finds the most recently modified .jsonl in the project's conversation dir.
+detect_session_id() {
+  local project_dir
+  project_dir=$(pwd | sed 's|^/||; s|/|-|g')
+  local conv_dir="$HOME/.claude/projects/-${project_dir}"
+
+  if [[ -d "$conv_dir" ]]; then
+    local latest
+    latest=$(ls -t "$conv_dir"/*.jsonl 2>/dev/null | head -1)
+    if [[ -n "$latest" ]]; then
+      # Extract UUID from filename (strip path and .jsonl)
+      local uuid
+      uuid=$(basename "$latest" .jsonl)
+      echo "${uuid:0:8}"
+      return 0
+    fi
+  fi
+
+  # Fallback: random 8-char hex
+  head -c 4 /dev/urandom | xxd -p
+}
+
 # ==============================================================================
 # Commands
 # ==============================================================================
@@ -45,17 +68,17 @@ cmd_create_context() {
   local title="${2:-}"
 
   if [[ -z "$ticket" || -z "$title" ]]; then
-    echo "Usage: mta-context.sh create-context <ticket> <title> [--linear-url=...] [--branch=...] [--worktree=...]" >&2
+    echo "Usage: mta-context.sh create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]" >&2
     exit 1
   fi
 
   shift 2
 
   # Parse optional flags
-  local linear_url="" branch="" worktree=""
+  local ticket_url="" branch="" worktree=""
   for arg in "$@"; do
     case "$arg" in
-      --linear-url=*) linear_url="${arg#*=}" ;;
+      --ticket-url=*) ticket_url="${arg#*=}" ;;
       --branch=*) branch="${arg#*=}" ;;
       --worktree=*) worktree="${arg#*=}" ;;
     esac
@@ -65,7 +88,7 @@ cmd_create_context() {
 
   # Build record - always include archived_at:null for consistent schema
   local record="{ticket:\"$ticket\",title:\"$title\",created:\"$(now)\",archived_at:null"
-  [[ -n "$linear_url" ]] && record="$record,linear_url:\"$linear_url\""
+  [[ -n "$ticket_url" ]] && record="$record,ticket_url:\"$ticket_url\""
   [[ -n "$branch" ]] && record="$record,branch:\"$branch\""
   [[ -n "$worktree" ]] && record="$record,worktree:\"$worktree\""
   record="$record}"
@@ -81,7 +104,7 @@ cmd_list_contexts() {
     return 0
   fi
   require_super
-  super -f table -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc"
+  super -j -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc" | grdy
 }
 
 cmd_get_context() {
@@ -100,7 +123,7 @@ cmd_get_context() {
   fi
 
   local result
-  result=$(super -f table -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket'" 2>/dev/null)
+  result=$(super -j -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket'" 2>/dev/null)
 
   if [[ -z "$result" ]]; then
     echo "Error: Context not found: $ticket" >&2
@@ -110,13 +133,26 @@ cmd_get_context() {
   echo "$result"
 }
 
+cmd_session_id() {
+  local worktree
+  worktree=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")
+  local short_id
+  short_id=$(detect_session_id)
+  echo "$worktree/$short_id"
+}
+
 cmd_join() {
   local ticket="${1:-}"
   local session_id="${2:-}"
 
-  if [[ -z "$ticket" || -z "$session_id" ]]; then
-    echo "Usage: mta-context.sh join <ticket> <session-id>" >&2
+  if [[ -z "$ticket" ]]; then
+    echo "Usage: mta-context.sh join <ticket> [session-id]" >&2
     exit 1
+  fi
+
+  # Auto-detect session ID if not provided
+  if [[ -z "$session_id" ]]; then
+    session_id=$(cmd_session_id)
   fi
 
   ensure_dir
@@ -204,9 +240,9 @@ cmd_list_sessions() {
   require_super
 
   if [[ -n "$ticket" ]]; then
-    super -f table -c "from '$CONTEXTS_DIR/sessions.sup' | where ticket = '$ticket' | sort joined_at desc"
+    super -j -c "from '$CONTEXTS_DIR/sessions.sup' | where ticket = '$ticket' | sort joined_at desc" | grdy
   else
-    super -f table -c "from '$CONTEXTS_DIR/sessions.sup' | sort joined_at desc"
+    super -j -c "from '$CONTEXTS_DIR/sessions.sup' | sort joined_at desc" | grdy
   fi
 }
 
@@ -240,7 +276,7 @@ cmd_list_decisions() {
   fi
 
   require_super
-  super -f table -c "from '$CONTEXTS_DIR/decisions.sup' | where ticket = '$ticket' | sort ts desc"
+  super -j -c "from '$CONTEXTS_DIR/decisions.sup' | where ticket = '$ticket' | sort ts desc" | grdy
 }
 
 cmd_add_task() {
@@ -325,7 +361,7 @@ cmd_list_tasks() {
   [[ "$pending_only" == "true" ]] && query="$query | where status = 'pending'"
   query="$query | sort ts desc"
 
-  super -f table -c "$query"
+  super -j -c "$query" | grdy
 }
 
 cmd_add_blocker() {
@@ -408,7 +444,7 @@ cmd_list_blockers() {
   [[ "$unresolved_only" == "true" ]] && query="$query | where resolved is null"
   query="$query | sort ts desc"
 
-  super -f table -c "$query"
+  super -j -c "$query" | grdy
 }
 
 cmd_status() {
@@ -490,12 +526,13 @@ mta-context.sh - MTA context management via SuperDB
 Usage: mta-context.sh <command> [args]
 
 Context Management:
-  create-context <ticket> <title> [--linear-url=...] [--branch=...] [--worktree=...]
+  create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
   list-contexts
   get-context <ticket>
 
 Session Management:
-  join <ticket> <session-id>
+  session-id                          Auto-detect session identifier
+  join <ticket> [session-id]          Session ID auto-detected if omitted
   leave <ticket> <session-id> <status> [note]
   list-sessions [ticket]
 
@@ -534,6 +571,7 @@ main() {
     create-context) cmd_create_context "$@" ;;
     list-contexts) cmd_list_contexts "$@" ;;
     get-context) cmd_get_context "$@" ;;
+    session-id) cmd_session_id "$@" ;;
     join) cmd_join "$@" ;;
     leave) cmd_leave "$@" ;;
     list-sessions) cmd_list_sessions "$@" ;;

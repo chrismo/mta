@@ -63,7 +63,7 @@ cp mta/bin/mta-context.sh ~/.local/bin/
 ### Context Management
 
 ```bash
-mta-context.sh create-context <ticket> <title> [--linear-url=...] [--branch=...] [--worktree=...]
+mta-context.sh create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
 mta-context.sh list-contexts
 mta-context.sh get-context <ticket>
 mta-context.sh archive <ticket>
