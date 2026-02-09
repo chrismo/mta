@@ -519,6 +519,100 @@ cmd_archive() {
   echo "Archived: $ticket"
 }
 
+cmd_import() {
+  local md_file="${1:-}"
+
+  if [[ -z "$md_file" ]]; then
+    echo "Usage: mta-context.sh import <context.md>" >&2
+    echo "  Import an old markdown context file into SuperDB." >&2
+    echo "  Looks in \$MTA_CONTEXTS_DIR (or ~/.claude/contexts/) by default." >&2
+    exit 1
+  fi
+
+  # Resolve file path - check as-is, then in contexts dir
+  if [[ ! -f "$md_file" ]]; then
+    local try="$CONTEXTS_DIR/$md_file"
+    if [[ -f "$try" ]]; then
+      md_file="$try"
+    else
+      echo "Error: File not found: $md_file" >&2
+      exit 1
+    fi
+  fi
+
+  ensure_dir
+
+  # Extract ticket from first heading: "# DEVOPS-1709: Title" or "# DEVOPS-1641 - Title"
+  local heading
+  heading=$(grep -m1 '^# ' "$md_file" | sed 's/^# //')
+
+  # Extract ticket ID (LETTERS-DIGITS pattern)
+  local ticket
+  ticket=$(echo "$heading" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+  if [[ -z "$ticket" ]]; then
+    echo "Error: Could not extract ticket ID from heading: $heading" >&2
+    exit 1
+  fi
+
+  # Check if already imported
+  if [[ -f "$CONTEXTS_DIR/contexts.sup" ]]; then
+    require_super
+    local exists
+    exists=$(super -f text -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket' | count()" 2>/dev/null || echo "0")
+    if [[ "$exists" != "0" ]]; then
+      echo "Error: Context already exists for $ticket" >&2
+      exit 1
+    fi
+  fi
+
+  # Extract title (everything after "TICKET: " or "TICKET - ")
+  local title
+  title=$(echo "$heading" | sed -E 's/^[A-Z]+-[0-9]+[: -]+//')
+  # Fallback: try bold line after heading
+  if [[ -z "$title" || "$title" == "$heading" ]]; then
+    title=$(grep -m1 '^\*\*' "$md_file" | sed 's/\*\*//g')
+  fi
+  [[ -z "$title" ]] && title="(imported)"
+
+  # Extract Linear/ticket URL
+  local ticket_url
+  ticket_url=$(grep -oE 'https://linear\.app/[^ )*]+' "$md_file" | head -1 || true)
+
+  # Extract branch
+  local branch
+  branch=$(grep -iE '^Branch:' "$md_file" | head -1 | sed 's/^[Bb]ranch:[[:space:]]*//' || true)
+  # Fallback: try to find branch from worktree section or filename
+  if [[ -z "$branch" ]]; then
+    local base
+    base=$(basename "$md_file" .md)
+    # If filename looks like a branch name (lowercase with dashes), use it
+    if [[ "$base" =~ ^[a-z]+-[0-9]+-.*$ ]]; then
+      branch="$base"
+    fi
+  fi
+
+  # Extract worktree
+  local worktree
+  worktree=$(grep -iE '^Worktree:' "$md_file" | head -1 | sed 's/^[Ww]orktree:[[:space:]]*//' || true)
+
+  # Build record
+  local record="{ticket:\"$ticket\",title:\"$title\",created:\"$(now)\",archived_at:null"
+  [[ -n "$ticket_url" ]] && record="$record,ticket_url:\"$ticket_url\""
+  [[ -n "$branch" ]] && record="$record,branch:\"$branch\""
+  [[ -n "$worktree" ]] && record="$record,worktree:\"$worktree\""
+  record="$record}"
+
+  append_record "contexts.sup" "$record"
+
+  echo "Imported: $ticket"
+  echo "  Title:  $title"
+  [[ -n "$ticket_url" ]] && echo "  URL:    $ticket_url"
+  [[ -n "$branch" ]] && echo "  Branch: $branch"
+  [[ -n "$worktree" ]] && echo "  Worktree: $worktree"
+  echo ""
+  echo "Source: $md_file (kept as-is)"
+}
+
 cmd_help() {
   less -FX <<EOF
 mta-context.sh - MTA context management via SuperDB
@@ -554,6 +648,9 @@ Status & Archive:
   status [ticket]
   archive <ticket>
 
+Migration:
+  import <context.md>              Import old markdown context into SuperDB
+
 Environment:
   MTA_CONTEXTS_DIR  Override contexts directory (default: ~/.claude/contexts)
 EOF
@@ -585,6 +682,7 @@ main() {
     list-blockers) cmd_list_blockers "$@" ;;
     status) cmd_status "$@" ;;
     archive) cmd_archive "$@" ;;
+    import) cmd_import "$@" ;;
     help|--help|-h) cmd_help ;;
     *)
       echo "Unknown command: $cmd" >&2

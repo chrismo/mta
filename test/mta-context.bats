@@ -348,6 +348,65 @@ load test_helper
 }
 
 # ==============================================================================
+# Import
+# ==============================================================================
+
+@test "import extracts ticket and title from markdown heading" {
+  require_super
+  cat > "$TEST_CONTEXTS_DIR/DEVOPS-1234.md" <<'MDEOF'
+# DEVOPS-1234: Fix the widget
+
+## Summary
+Some work on widgets.
+
+Branch: devops-1234-fix-widget
+Worktree: ds5
+MDEOF
+
+  run mta import "$TEST_CONTEXTS_DIR/DEVOPS-1234.md"
+  assert_success
+  assert_file_contains "contexts.sup" "ticket:\"DEVOPS-1234\""
+  assert_file_contains "contexts.sup" "title:\"Fix the widget\""
+  assert_file_contains "contexts.sup" "branch:\"devops-1234-fix-widget\""
+  assert_file_contains "contexts.sup" "worktree:\"ds5\""
+}
+
+@test "import extracts linear url from markdown body" {
+  require_super
+  cat > "$TEST_CONTEXTS_DIR/DEVOPS-5678.md" <<'MDEOF'
+# DEVOPS-5678 - Some ticket
+
+Linear: https://linear.app/team/issue/DEVOPS-5678/some-ticket
+MDEOF
+
+  run mta import "$TEST_CONTEXTS_DIR/DEVOPS-5678.md"
+  assert_success
+  assert_file_contains "contexts.sup" "ticket_url:\"https://linear.app/team/issue/DEVOPS-5678/some-ticket\""
+}
+
+@test "import rejects duplicate ticket" {
+  require_super
+  cat > "$TEST_CONTEXTS_DIR/DEVOPS-9999.md" <<'MDEOF'
+# DEVOPS-9999: Already here
+MDEOF
+
+  mta create-context DEVOPS-9999 "Already here"
+  run mta import "$TEST_CONTEXTS_DIR/DEVOPS-9999.md"
+  assert_failure
+}
+
+@test "import resolves filename from contexts dir" {
+  require_super
+  cat > "$TEST_CONTEXTS_DIR/DEVOPS-4321.md" <<'MDEOF'
+# DEVOPS-4321: Lookup by name
+MDEOF
+
+  run mta import DEVOPS-4321.md
+  assert_success
+  assert_file_contains "contexts.sup" "ticket:\"DEVOPS-4321\""
+}
+
+# ==============================================================================
 # Assertion Helpers (bats-assert compatibility)
 # ==============================================================================
 
