@@ -32,12 +32,14 @@ fi
 
 mkdir -p "$LOCAL_BIN"
 
-dest="$LOCAL_BIN/mta-context.sh"
-if [[ -L "$dest" ]] || [[ -f "$dest" ]]; then
-  rm "$dest"
-fi
-ln -s "$SCRIPT_DIR/bin/mta-context.sh" "$dest"
-echo "Linked mta-context.sh -> $LOCAL_BIN/"
+for bin_file in mta-context.sh claude-slot; do
+  dest="$LOCAL_BIN/$bin_file"
+  if [[ -L "$dest" ]] || [[ -f "$dest" ]]; then
+    rm "$dest"
+  fi
+  ln -s "$SCRIPT_DIR/bin/$bin_file" "$dest"
+  echo "Linked $bin_file -> $LOCAL_BIN/"
+done
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Install skills (mta/ and mtm/ -> ~/.claude/commands/)
