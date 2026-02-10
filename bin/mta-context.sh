@@ -1012,9 +1012,13 @@ cmd_import() {
   local heading
   heading=$(grep -m1 '^# ' "$md_file" | sed 's/^# //')
 
-  # Extract ticket ID (LETTERS-DIGITS pattern)
+  # Extract ticket ID: try LETTERS-DIGITS pattern first, fall back to heading text
   local ticket
-  ticket=$(echo "$heading" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+  ticket=$(echo "$heading" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
+  if [[ -z "$ticket" ]]; then
+    # Use heading as ticket, lowercased with spaces/punctuation replaced by dashes
+    ticket=$(echo "$heading" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
+  fi
   if [[ -z "$ticket" ]]; then
     echo "Error: Could not extract ticket ID from heading: $heading" >&2
     exit 1
@@ -1041,7 +1045,7 @@ cmd_import() {
     title=$(echo "$heading" | sed -E 's/^[A-Z]+-[0-9]+[: -]+//')
     # Fallback: try bold line after heading
     if [[ -z "$title" || "$title" == "$heading" ]]; then
-      title=$(grep -m1 '^\*\*' "$md_file" | sed 's/\*\*//g')
+      title=$(grep -m1 '^\*\*' "$md_file" | sed 's/\*\*//g' || true)
     fi
     [[ -z "$title" ]] && title="(imported)"
 
