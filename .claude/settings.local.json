@@ -8,7 +8,22 @@
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(yah:*)",
-      "Bash(bats:*)"
+      "Bash(bats:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(git log:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "mcp__superdb__super_query",
+      "mcp__superdb__super_help",
+      "Bash(git push:*)",
+      "Bash(super -j -c \"from ''$HOME/.claude/contexts/contexts.sup''\")",
+      "Bash(super -j -c:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "dscops"
+  ]
 }
