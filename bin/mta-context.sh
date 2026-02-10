@@ -162,6 +162,7 @@ cmd_join() {
     require_super
     local exists
     exists=$(super -f text -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket' | count()" 2>/dev/null || echo "0")
+    exists="${exists:-0}"
     if [[ "$exists" == "0" ]]; then
       echo "Error: Context not found: $ticket" >&2
       exit 1
@@ -559,6 +560,7 @@ cmd_import() {
     require_super
     local exists
     exists=$(super -f text -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket' | count()" 2>/dev/null || echo "0")
+    exists="${exists:-0}"
     if [[ "$exists" != "0" ]]; then
       echo "Error: Context already exists for $ticket" >&2
       exit 1
