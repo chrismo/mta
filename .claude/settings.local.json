@@ -19,7 +19,10 @@
       "mcp__superdb__super_help",
       "Bash(git push:*)",
       "Bash(super -j -c \"from ''$HOME/.claude/contexts/contexts.sup''\")",
-      "Bash(super -j -c:*)"
+      "Bash(super -j -c:*)",
+      "Bash(claude-slot:*)",
+      "Bash(ls:*)",
+      "Bash(bin/mta-context.sh:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
