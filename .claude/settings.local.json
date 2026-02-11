@@ -22,7 +22,11 @@
       "Bash(super -j -c:*)",
       "Bash(claude-slot:*)",
       "Bash(ls:*)",
-      "Bash(bin/mta-context.sh:*)"
+      "Bash(bin/mta-context.sh:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(gh api:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
