@@ -14,7 +14,7 @@ Archive a completed shared context.
 /mtm:archive <ticket>
 ```
 
-Example: `/mtm:archive DEVOPS-1697`
+Example: `/mtm:archive PROJ-1697`
 
 ## What This Does
 

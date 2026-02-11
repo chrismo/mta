@@ -73,7 +73,7 @@ Look for:
 - Architectural decisions ("we decided to use X because Y")
 - Implementation changes ("changed ceiling calc to use bc")
 - Gotchas discovered ("SuperDB doesn't support X, had to work around")
-- Blockers ("waiting on CI fix for Oban Pro access")
+- Blockers ("waiting on CI fix for dependency access")
 
 Keep entries concise - one line each. Other Claudes need signal, not noise.
 
@@ -85,15 +85,15 @@ Keep entries concise - one line each. Other Claudes need signal, not noise.
 Added to shared context:
 
 Decisions:
-- Queue scaling uses bc for ceiling calc (bash truncates)
-- Cooldowns shared between memory and queue paths
+- Rate limiting uses bc for ceiling calc (bash truncates)
+- Retry delays shared between sync and async paths
 
 Tasks:
 - Implement retry logic for failed API calls
 - Add unit tests for ceiling calculation
 
 Uncommitted changes:
-- ops/platform/aws/ops-lambda/scripts/asg-scaler/asg-scaler.sh (modified)
+- src/services/auth/auth-handler.sh (modified)
 
 Commit and push? [y/n]
 ```

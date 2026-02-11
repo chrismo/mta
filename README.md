@@ -15,12 +15,12 @@ When multiple Claude sessions work on the same ticket, they need shared context:
 Store coordination data in `.sup` files (SuperDB format) with a CLI for all operations:
 
 ```bash
-mta-context.sh create-context DEVOPS-1641 "Replace Oban scaler"
-mta-context.sh join DEVOPS-1641 ds5/session-abc
-mta-context.sh add-decision DEVOPS-1641 "Using bc for ceiling calc"
-mta-context.sh add-task DEVOPS-1641 "Add retry logic"
-mta-context.sh status DEVOPS-1641
-mta-context.sh leave DEVOPS-1641 ds5/session-abc done "implemented scaling"
+mta-context.sh create-context PROJ-1641 "Upgrade auth service"
+mta-context.sh join PROJ-1641 ds5/session-abc
+mta-context.sh add-decision PROJ-1641 "Using bc for ceiling calc"
+mta-context.sh add-task PROJ-1641 "Add retry logic"
+mta-context.sh status PROJ-1641
+mta-context.sh leave PROJ-1641 ds5/session-abc done "implemented scaling"
 ```
 
 ## Why SuperDB?

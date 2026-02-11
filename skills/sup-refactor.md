@@ -26,37 +26,37 @@ Location: `~/.claude/contexts/`
 ### contexts.sup
 The parent record for each coordination effort.
 ```
-{ticket:"DEVOPS-1641",title:"Replace Oban scaler",created:"2026-01-27T16:32:00Z",ticket_url:"https://linear.app/...",branch:"devops-1641-...",worktree:"ds5"}
-{ticket:"DEVOPS-1670",title:"CI multi-workflow experiment",created:"2026-01-29T09:00:00Z",ticket_url:"...",branch:"...",worktree:"ds9"}
+{ticket:"PROJ-1641",title:"Upgrade auth service",created:"2026-01-27T16:32:00Z",ticket_url:"https://tracker.example.com/...",branch:"proj-101-...",worktree:"wt1"}
+{ticket:"PROJ-1670",title:"CI pipeline experiment",created:"2026-01-29T09:00:00Z",ticket_url:"...",branch:"...",worktree:"ds9"}
 ```
 
 ### sessions.sup
 Active/historical sessions linked to contexts.
 ```
-{ticket:"DEVOPS-1641",session_id:"ds5/c342fbfe",joined_at:"2026-01-29T16:30:00Z",left_at:null}
-{ticket:"DEVOPS-1641",session_id:"ds5/a779c24f",joined_at:"2026-01-29T15:30:00Z",left_at:null}
-{ticket:"DEVOPS-1641",session_id:"ds8",joined_at:"2026-01-27T16:00:00Z",left_at:"2026-01-27T18:25:00Z",status:"handoff",note:"diagnosed EnvType tag issue"}
+{ticket:"PROJ-1641",session_id:"ds5/c342fbfe",joined_at:"2026-01-29T16:30:00Z",left_at:null}
+{ticket:"PROJ-1641",session_id:"ds5/a779c24f",joined_at:"2026-01-29T15:30:00Z",left_at:null}
+{ticket:"PROJ-1641",session_id:"ds8",joined_at:"2026-01-27T16:00:00Z",left_at:"2026-01-27T18:25:00Z",status:"handoff",note:"diagnosed EnvType tag issue"}
 ```
 
 ### decisions.sup
 Decision log with timestamps.
 ```
-{ticket:"DEVOPS-1641",ts:"2026-01-29T20:42:00Z",text:"QUEUE SCALING E2E VERIFIED"}
-{ticket:"DEVOPS-1641",ts:"2026-01-28T22:45:00Z",text:"CRITICAL: Lambda SuperDB version must match local dev"}
+{ticket:"PROJ-1641",ts:"2026-01-29T20:42:00Z",text:"AUTH MIGRATION E2E VERIFIED"}
+{ticket:"PROJ-1641",ts:"2026-01-28T22:45:00Z",text:"CRITICAL: Deploy SuperDB version must match local dev"}
 ```
 
 ### tasks.sup
 Outstanding tasks (incomplete work for future sessions).
 ```
-{ticket:"DEVOPS-1641",ts:"2026-01-29T21:00:00Z",text:"Add SSM SendCommand permission to dev profile",status:"pending"}
-{ticket:"DEVOPS-1641",ts:"2026-01-29T21:00:00Z",text:"Fix JSON quote escaping in bin/ssm axon_eval",status:"pending"}
+{ticket:"PROJ-1641",ts:"2026-01-29T21:00:00Z",text:"Add deploy permission to dev profile",status:"pending"}
+{ticket:"PROJ-1641",ts:"2026-01-29T21:00:00Z",text:"Fix JSON quote escaping in deploy script",status:"pending"}
 ```
 
 ### blockers.sup
 Active blockers (resolved ones can be marked).
 ```
-{ticket:"DEVOPS-1706",ts:"2026-01-29T09:00:00Z",text:"Notion page requires auth",resolved:null}
-{ticket:"DEVOPS-1641",ts:"2026-01-27T17:30:00Z",text:"Queue metrics not appearing",resolved:"2026-01-27T18:10:00Z"}
+{ticket:"PROJ-1706",ts:"2026-01-29T09:00:00Z",text:"Wiki page requires auth",resolved:null}
+{ticket:"PROJ-1641",ts:"2026-01-27T17:30:00Z",text:"Dashboard metrics not appearing",resolved:"2026-01-27T18:10:00Z"}
 ```
 
 ## Example Queries
@@ -66,7 +66,7 @@ Active blockers (resolved ones can be marked).
 super -c "from 'sessions.sup' | where left_at = null"
 
 # Decisions for a ticket, sorted
-super -c "from 'decisions.sup' | where ticket = 'DEVOPS-1641' | sort ts"
+super -c "from 'decisions.sup' | where ticket = 'PROJ-1641' | sort ts"
 
 # Contexts with active session counts
 super -c "

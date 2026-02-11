@@ -48,11 +48,11 @@ Lightweight mid-day check of coordinated work and today's activity.
 ## Quick Status
 
 ### Active Coordinations
-- **DEVOPS-1641**: 2 active sessions | no blockers
-- **INCIDENT-cloudflare**: 1 session | BLOCKING
+- **PROJ-1641**: 2 active sessions | no blockers
+- **INCIDENT-outage**: 1 session | BLOCKING
 
 ### Blockers
-- INCIDENT-cloudflare blocking DEVOPS-1641
+- INCIDENT-outage blocking PROJ-1641
 
 ### PRs Needing Action
 - #12345 "Fix auth" — APPROVED, ready to merge

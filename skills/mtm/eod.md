@@ -22,7 +22,7 @@ Wind down coordinated work across Claude sessions.
    ```
    Then for each worktree with recent activity (age_days <= 1):
    ```bash
-   cd /Users/chrismo/dev/<worktree> && git status --short
+   cd /home/user/dev/<worktree> && git status --short
    ```
    Flag any with uncommitted changes.
 
@@ -59,10 +59,10 @@ Wind down coordinated work across Claude sessions.
    - #12350 "Add caching" — CHANGES REQUESTED, follow up tomorrow
 
    ### Coordinated Work
-   - DEVOPS-1641: [status summary] | Tomorrow: [next steps]
+   - PROJ-1641: [status summary] | Tomorrow: [next steps]
 
    ### Blockers
-   - INCIDENT-cloudflare: unresolved
+   - INCIDENT-outage: unresolved
 
    ### Parked (no action needed)
    - ds9, ds3

@@ -18,7 +18,7 @@ Register this Claude session as part of a coordinated effort on a ticket.
 
 1. **Detect ticket** (if not provided):
    - Get current branch: `git branch --show-current`
-   - Extract ticket pattern from branch name (e.g., `devops-1641-replace-custom...` → `DEVOPS-1641`)
+   - Extract ticket pattern from branch name (e.g., `proj-101-upgrade-auth...` → `PROJ-1641`)
    - Common patterns: `<project>-<number>-description` where project is letters, number is digits
    - Convert to uppercase for the context
    - If no pattern found, ask user for ticket

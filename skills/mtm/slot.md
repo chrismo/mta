@@ -1,7 +1,7 @@
 ---
 name: mtm:slot
 description: Get a claude-slot command to start a new worker on a ticket
-allowed-tools: Bash, mcp__plugin_linear_linear__get_issue
+allowed-tools: Bash
 ---
 
 # Multitasking Manager - Slot
@@ -14,13 +14,13 @@ Generate a `claude-slot` command to start a new Claude worker on a ticket.
 /mtm:slot <ticket-id>
 ```
 
-Example: `/mtm:slot DEVOPS-1714`
+Example: `/mtm:slot PROJ-1714`
 
 ## What This Does
 
-1. **Look up ticket in Linear**:
-   - Get ticket title, branch name, status, priority
-   - Use the Linear MCP `get_issue` tool
+1. **Look up ticket in GitHub Issues**:
+   - Get issue title, branch name, status, labels
+   - Use `gh issue view <number>` to fetch details
 
 2. **Find available worktree slots**:
    ```bash
@@ -46,7 +46,7 @@ Example: `/mtm:slot DEVOPS-1714`
    ### Available Slots
    | Slot | Current Branch | Age | Notes |
    |------|----------------|-----|-------|
-   | ds4  | devops-1697-...| 5d  | Likely complete |
+   | ds4  | proj-301-...| 5d  | Likely complete |
    | ds7  | ena-101-...    | 3d  | |
 
    ### Recommended

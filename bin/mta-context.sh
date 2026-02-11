@@ -1008,7 +1008,7 @@ cmd_import() {
 
   ensure_dir
 
-  # Extract ticket from first heading: "# DEVOPS-1709: Title" or "# DEVOPS-1641 - Title"
+  # Extract ticket from first heading: "# PROJ-1709: Title" or "# PROJ-1641 - Title"
   local heading
   heading=$(grep -m1 '^# ' "$md_file" | sed 's/^# //')
 
@@ -1049,9 +1049,9 @@ cmd_import() {
     fi
     [[ -z "$title" ]] && title="(imported)"
 
-    # Extract Linear/ticket URL
+    # Extract ticket URL (GitHub Issues or other tracker)
     local ticket_url
-    ticket_url=$(grep -oE 'https://linear\.app/[^ )*]+' "$md_file" | head -1 || true)
+    ticket_url=$(grep -oE 'https://github\.com/[^ )*]+/issues/[0-9]+' "$md_file" | head -1 || true)
 
     # Extract branch
     local branch

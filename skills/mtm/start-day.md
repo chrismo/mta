@@ -57,8 +57,8 @@ Full overview of all coordinated work - use this to plan your day.
 ## Multitasking Status
 
 ### Active Coordinations
-- **DEVOPS-1641**: 3 sessions (ds5/92e7df7e, ds5/a1b2c3d4, ds8/x9y8z7w6) | 5 decisions | no blockers
-- **INCIDENT-cloudflare**: 1 session (ds4/f3e2d1c0) | 1 decision | blocking DEVOPS-1641
+- **PROJ-1641**: 3 sessions (ds5/92e7df7e, ds5/a1b2c3d4, ds8/x9y8z7w6) | 5 decisions | no blockers
+- **INCIDENT-outage**: 1 session (ds4/f3e2d1c0) | 1 decision | blocking PROJ-1641
 
 ### Open PRs
 **Needs action:**
@@ -72,7 +72,7 @@ Full overview of all coordinated work - use this to plan your day.
 - #11200 "Old experiment" — no activity since Jan 15
 
 ### Uncoordinated Worktrees
-- ds9: devops-1670-experiment-with-multi-workflows (no shared context)
+- ds9: proj-202-experiment-with-ci-pipeline (no shared context)
 
 ### Recent Activity
 - ds5: 2 active sessions
