@@ -21,11 +21,11 @@ now() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
 }
 
-# Append a record to a .sup file
+# Append a record to a .sup file (validates as SUP first)
 append_record() {
   local file="$1"
   local record="$2"
-  echo "$record" >> "$CONTEXTS_DIR/$file"
+  echo "$record" | super -s -c 'values this' - >> "$CONTEXTS_DIR/$file"
 }
 
 # Escape text for ZSON string embedding (backslash and double quotes)
@@ -177,10 +177,11 @@ cmd_create_context() {
   ensure_dir
 
   # Build record - always include archived_at:null for consistent schema
+  title=$(escape_sup_text "$title")
   local record="{ticket:\"$ticket\",title:\"$title\",created:\"$(now)\",archived_at:null"
-  [[ -n "$ticket_url" ]] && record="$record,ticket_url:\"$ticket_url\""
-  [[ -n "$branch" ]] && record="$record,branch:\"$branch\""
-  [[ -n "$worktree" ]] && record="$record,worktree:\"$worktree\""
+  [[ -n "$ticket_url" ]] && record="$record,ticket_url:\"$(escape_sup_text "$ticket_url")\""
+  [[ -n "$branch" ]] && record="$record,branch:\"$(escape_sup_text "$branch")\""
+  [[ -n "$worktree" ]] && record="$record,worktree:\"$(escape_sup_text "$worktree")\""
   record="$record}"
 
   append_record "contexts.sup" "$record"
@@ -296,6 +297,7 @@ cmd_leave() {
   local found=false
   local now_ts
   now_ts=$(now)
+  note=$(escape_sup_text "$note")
 
   while IFS= read -r line; do
     if [[ "$line" == *"session_id:\"$session_id\""* && "$line" == *"left_at:null"* ]]; then
@@ -347,6 +349,7 @@ cmd_add_decision() {
   fi
 
   ensure_dir
+  text=$(escape_sup_text "$text")
   local record="{ticket:\"$ticket\",ts:\"$(now)\",text:\"$text\"}"
   append_record "decisions.sup" "$record"
   echo "Decision recorded."
@@ -380,6 +383,7 @@ cmd_add_task() {
   fi
 
   ensure_dir
+  text=$(escape_sup_text "$text")
   local record="{ticket:\"$ticket\",ts:\"$(now)\",text:\"$text\",status:\"pending\"}"
   append_record "tasks.sup" "$record"
   echo "Task added."
@@ -465,6 +469,7 @@ cmd_add_blocker() {
   fi
 
   ensure_dir
+  text=$(escape_sup_text "$text")
   local record="{ticket:\"$ticket\",ts:\"$(now)\",text:\"$text\",resolved:null}"
   append_record "blockers.sup" "$record"
   echo "Blocker added."
