@@ -81,7 +81,7 @@ Full overview of all coordinated work - use this to plan your day.
 
 ## Notes
 
-This is the heavy morning overview. For quick mid-day checks, use `/mtm:status` instead.
+This is the heavy morning overview. For quick mid-day checks, use `/mtm:update` instead.
 
 Keep output concise. Manager needs the big picture, not details.
 If no contexts exist, note that and suggest `/mtm:new-context <ticket>` to start coordinating.

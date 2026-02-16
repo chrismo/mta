@@ -8,7 +8,7 @@ MTA coordinates multiple Claude sessions working on the same ticket via shared c
 
 - `bin/mta-context.sh` - CLI that all skills invoke. Must be in PATH.
 - `skills/` - MTA worker skills (`/mta:join`, `/mta:read`, `/mta:update`, `/mta:leave`, `/mta:dupe`)
-- `skills/mtm/` - MTM manager skills (`/mtm:status`, `/mtm:start-day`, `/mtm:eod`, `/mtm:new-context`, `/mtm:archive`, `/mtm:slot`)
+- `skills/mtm/` - MTM manager skills (`/mtm:update`, `/mtm:start-day`, `/mtm:eod`, `/mtm:new-context`, `/mtm:archive`, `/mtm:slot`)
 
 ## Dependencies
 

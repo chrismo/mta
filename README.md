@@ -150,7 +150,7 @@ If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/ski
 - `/mta:dupe` - Spawn a duplicate worker on the same ticket
 
 ### MTM (Manager Skills)
-- `/mtm:status` - Quick mid-day status check
+- `/mtm:update` - Quick mid-day status check
 - `/mtm:start-day` - Full morning overview
 - `/mtm:eod` - End of day wrap-up
 - `/mtm:new-context` - Create a new shared context

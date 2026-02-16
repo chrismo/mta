@@ -41,5 +41,5 @@ Archived <TICKET>.
 
 ## Notes
 
-- Archived contexts are excluded from `/mtm:status` and `/mtm:start-day`
+- Archived contexts are excluded from `/mtm:update` and `/mtm:start-day`
 - To view archived contexts: `mta-context.sh list-contexts` (shows all including archived)

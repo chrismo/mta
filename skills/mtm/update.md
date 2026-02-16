@@ -1,5 +1,5 @@
 ---
-name: mtm:status
+name: mtm:update
 description: Quick mid-day status of coordinated multi-Claude work
 allowed-tools: Bash
 ---
@@ -11,7 +11,7 @@ Lightweight mid-day check of coordinated work and today's activity.
 ## Usage
 
 ```
-/mtm:status
+/mtm:update
 ```
 
 ## What This Does
