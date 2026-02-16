@@ -195,7 +195,7 @@ cmd_list_contexts() {
     return 0
   fi
   require_super
-  super -j -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc" | grdy
+  super -j -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc | cut ticket, title" | grdy
 }
 
 cmd_get_context() {
