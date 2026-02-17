@@ -334,6 +334,16 @@ load test_helper
   assert_success
 }
 
+@test "handles slashes in notes" {
+  require_super
+  mta create-context PROJ-1641 "Test"
+  mta join PROJ-1641 ds5/abc123
+
+  run mta leave PROJ-1641 ds5/abc123 handoff "Fixed path/to/file and used s/old/new/ pattern"
+  assert_success
+  assert_file_contains "sessions.sup" "Fixed path/to/file"
+}
+
 @test "concurrent sessions for same ticket" {
   require_super
   mta create-context PROJ-1641 "Upgrade auth service"

@@ -36,6 +36,13 @@ escape_sup_text() {
   echo "$text"
 }
 
+# Escape text for single-quoted SuperDB query values (backslash and single quotes)
+escape_super_val() {
+  local -r text="$1"
+  # shellcheck disable=SC2001
+  echo "$text" | sed 's/\\/\\\\/g' | sed "s/'/\\\\'/g"
+}
+
 # Normalize various date formats to YYYY-MM-DDTHH:MM:SSZ
 # Handles: "2026-02-06", "2026-02-06 16:30", "2026-02-06T16:30:00Z", etc.
 normalize_date() {
@@ -252,7 +259,7 @@ cmd_join() {
   if [[ -f "$CONTEXTS_DIR/contexts.sup" ]]; then
     require_super
     local exists
-    exists=$(super -f text -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket' | count()" 2>/dev/null || echo "0")
+    exists=$(super -f line -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket' | count()" 2>/dev/null || echo "0")
     exists="${exists:-0}"
     if [[ "$exists" == "0" ]]; then
       echo "Error: Context not found: $ticket" >&2
@@ -297,13 +304,14 @@ cmd_leave() {
   local found=false
   local now_ts
   now_ts=$(now)
-  note=$(escape_sup_text "$note")
+  local note_sq status_sq
+  note_sq=$(escape_super_val "$note")
+  status_sq=$(escape_super_val "$status")
 
   while IFS= read -r line; do
     if [[ "$line" == *"session_id:\"$session_id\""* && "$line" == *"left_at:null"* ]]; then
-      # Update this record
       local new_line
-      new_line=$(echo "$line" | sed "s/left_at:null/left_at:\"$now_ts\",status:\"$status\",note:\"$note\"/")
+      new_line=$(echo "$line" | super -s -c "put left_at:='$now_ts',status:='$status_sq',note:='$note_sq'" -)
       echo "$new_line" >> "$temp_file"
       found=true
     else
@@ -413,7 +421,7 @@ cmd_complete_task() {
   while IFS= read -r line; do
     if [[ "$line" == *"$pattern"* && "$line" == *"status:\"pending\""* && "$found" == "false" ]]; then
       local new_line
-      new_line=$(echo "$line" | sed 's/status:"pending"/status:"completed"/')
+      new_line=$(echo "$line" | super -s -c "put status:='completed'" -)
       echo "$new_line" >> "$temp_file"
       found=true
     else
@@ -501,7 +509,7 @@ cmd_resolve_blocker() {
   while IFS= read -r line; do
     if [[ "$line" == *"$pattern"* && "$line" == *"resolved:null"* && "$found" == "false" ]]; then
       local new_line
-      new_line=$(echo "$line" | sed "s/resolved:null/resolved:\"$now_ts\"/")
+      new_line=$(echo "$line" | super -s -c "put resolved:='$now_ts'" -)
       echo "$new_line" >> "$temp_file"
       found=true
     else
@@ -595,9 +603,8 @@ cmd_archive() {
 
   while IFS= read -r line; do
     if [[ "$line" == *"ticket:\"$ticket\""* && "$line" == *"archived_at:null"* ]]; then
-      # Update archived_at from null to timestamp
       local new_line
-      new_line=$(echo "$line" | sed "s/archived_at:null/archived_at:\"$now_ts\"/")
+      new_line=$(echo "$line" | super -s -c "put archived_at:='$now_ts'" -)
       echo "$new_line" >> "$temp_file"
       found=true
     else
@@ -1034,7 +1041,7 @@ cmd_import() {
   if [[ -f "$CONTEXTS_DIR/contexts.sup" ]]; then
     require_super
     local exists
-    exists=$(super -f text -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket' | count()" 2>/dev/null || echo "0")
+    exists=$(super -f line -c "from '$CONTEXTS_DIR/contexts.sup' | where ticket = '$ticket' | count()" 2>/dev/null || echo "0")
     exists="${exists:-0}"
     if [[ "$exists" != "0" ]]; then
       already_exists=true
