@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 #
-# MTA installer - set up mta-context.sh and Claude Code skills
+# MTA installer - set up CLI tools and Claude Code skills
 #
 # What this does:
 #   1. Checks dependencies (super CLI)
-#   2. Symlinks bin/mta-context.sh -> ~/.local/bin/
-#   3. Symlinks skills/mta/ and skills/mtm/ -> ~/.claude/commands/
-#      (replaces any existing mta/mtm symlinks, e.g. from brain repo)
+#   2. Symlinks bin/* -> ~/.local/bin/
+#   3. Symlinks skills/*.sh -> ~/.local/bin/ (skill-bundled scripts)
+#   4. Symlinks skills/mta/ and skills/mtm/ -> ~/.claude/commands/
+#   5. Symlinks skills/*.md -> ~/.claude/commands/
 #
 # Usage: ./install.sh
 
@@ -75,7 +76,7 @@ for namespace in mta mtm; do
 done
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Also install standalone skill files (e.g. sup-refactor.md)
+# Install standalone skill files (*.md -> commands/, *.sh -> bin/)
 # ─────────────────────────────────────────────────────────────────────────────
 
 for skill_file in "$SCRIPT_DIR/skills"/*.md; do
@@ -89,6 +90,22 @@ for skill_file in "$SCRIPT_DIR/skills"/*.md; do
 
     ln -s "$skill_file" "$dest"
     echo "Linked $filename -> commands/"
+  fi
+done
+
+# Skill-bundled scripts (e.g. work-context.sh) -> ~/.local/bin/ (without .sh)
+for script_file in "$SCRIPT_DIR/skills"/*.sh; do
+  if [[ -f "$script_file" ]]; then
+    # Install as command name without .sh extension
+    cmd_name=$(basename "$script_file" .sh)
+    dest="$LOCAL_BIN/$cmd_name"
+
+    if [[ -L "$dest" ]] || [[ -f "$dest" ]]; then
+      rm "$dest"
+    fi
+
+    ln -s "$script_file" "$dest"
+    echo "Linked $cmd_name -> $LOCAL_BIN/ (from skills/)"
   fi
 done
 

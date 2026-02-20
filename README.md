@@ -138,7 +138,7 @@ super --version
 
 ### Transition from brain repo
 
-If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/skills/mta/` and `ai-agents/claude/skills/mtm/`), remove those skill sources to avoid conflicts. Independent skills like `yah`, `plan`, and `review` stay in the brain repo.
+If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/skills/mta/` and `ai-agents/claude/skills/mtm/`), remove those skill sources to avoid conflicts. Independent skills like `plan` and `review` stay in the brain repo. The `yah` script has been moved here as `work-context`.
 
 ## Claude Code Skills
 

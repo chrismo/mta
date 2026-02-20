@@ -24,7 +24,7 @@ Example: `/mtm:slot PROJ-1714`
 
 2. **Find available worktree slots**:
    ```bash
-   yah data 7 2>/dev/null
+   work-context data 7 2>/dev/null
    ```
    - Identify stale worktrees (age > 3 days, or marked done/archived)
    - Prefer slots with no active context or completed work

@@ -36,9 +36,9 @@ Lightweight mid-day check of coordinated work and today's activity.
    mta-context.sh list-sessions
    ```
 
-5. Run `yah conversations 0` (today only) for quick session overview
+5. Run `work-context conversations 0` (today only) for quick session overview
 
-6. Quick PR check from `yah data 0`:
+6. Quick PR check from `work-context data 0`:
    - Only flag PRs needing immediate action (approved, changes requested)
    - Skip the full PR breakdown (that's for start-day)
 
@@ -59,7 +59,7 @@ Lightweight mid-day check of coordinated work and today's activity.
 - #12350 "Add caching" — CHANGES REQUESTED
 
 ### Today's Sessions
-(output from yah conversations 0)
+(output from work-context conversations 0)
 ```
 
 ## Notes

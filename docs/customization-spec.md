@@ -5,7 +5,7 @@
 The core MTA/MTM skills make assumptions that won't hold for all users:
 
 - `/mtm:slot` depends on Linear MCP for ticket lookup
-- `start-day`, `eod`, `status` depend on `yah` for worktree/PR data
+- `start-day`, `eod`, `status` depend on `work-context` for worktree/PR data
 - `eod` hardcodes worktree paths
 - Branch naming assumes `<PROJECT>-<NUM>-*`
 
@@ -117,7 +117,7 @@ To support these patterns well, core skills should:
 1. **Do one thing well.** Each core skill should be a useful building block
    on its own. Avoid stuffing unrelated steps into a single skill.
 
-2. **Tolerate missing tools gracefully.** If `yah` isn't installed, `start-day`
+2. **Tolerate missing tools gracefully.** If `work-context` isn't installed, `start-day`
    should still show MTA context data and note that worktree/PR info is
    unavailable. This makes core skills useful even without the full
    environment.
@@ -149,7 +149,7 @@ The user simply invokes `/my:start-day` instead of `/mtm:start-day`.
 
 No breaking changes needed. This is purely additive:
 
-1. Improve graceful degradation in core skills (handle missing `yah`, etc.)
+1. Improve graceful degradation in core skills (handle missing `work-context`, etc.)
 2. Document the composition patterns (this spec)
 3. Optionally ship example wrapper skills as templates in `examples/`
 

@@ -16,7 +16,7 @@ Full overview of all coordinated work - use this to plan your day.
 
 ## What This Does
 
-1. Run `yah data 7` to get worktree/conversation data
+1. Run `work-context data 7` to get worktree/conversation data
 
 2. List all active contexts:
    ```bash
@@ -40,7 +40,7 @@ Full overview of all coordinated work - use this to plan your day.
 
 6. Correlate: which conversations map to which contexts
 
-7. **Review open PRs** from `yah data` output:
+7. **Review open PRs** from `work-context data` output:
    - Match PRs to active contexts/worktrees by branch name
    - Flag PRs needing attention: approved but not merged, changes requested, stale (no updates in 7+ days)
    - Note any PRs not tied to an active context (forgotten work)

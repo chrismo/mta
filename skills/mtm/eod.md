@@ -18,7 +18,7 @@ Wind down coordinated work across Claude sessions.
 
 1. **Check for uncommitted changes** across all worktrees:
    ```bash
-   yah data 7
+   work-context data 7
    ```
    Then for each worktree with recent activity (age_days <= 1):
    ```bash
@@ -42,7 +42,7 @@ Wind down coordinated work across Claude sessions.
    mta-context.sh list-blockers --unresolved
    ```
 
-5. **Review open PRs** from `yah data 7`:
+5. **Review open PRs** from `work-context data 7`:
    - Flag approved PRs not yet merged (could merge before EOD)
    - Flag PRs with changes requested (need follow-up tomorrow)
    - Note any PRs updated today that are still awaiting review
