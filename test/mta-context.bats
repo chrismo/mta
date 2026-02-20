@@ -316,6 +316,31 @@ load test_helper
   assert_file_contains "contexts.sup" "archived_at:\""
 }
 
+@test "unarchive restores archived context" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta archive PROJ-1641
+
+  run mta unarchive PROJ-1641
+  assert_success
+  [[ "$output" == *"Unarchived: PROJ-1641"* ]]
+
+  # Context should have archived_at:null again
+  assert_file_contains "contexts.sup" "archived_at:null"
+}
+
+@test "unarchive fails on non-archived context" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta unarchive PROJ-1641
+  assert_failure
+  [[ "$output" == *"not archived"* ]]
+}
+
+@test "unarchive fails on missing context" {
+  run mta unarchive NONEXISTENT
+  assert_failure
+}
+
 # ==============================================================================
 # Edge Cases & Error Handling
 # ==============================================================================

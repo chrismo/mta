@@ -622,6 +622,47 @@ cmd_archive() {
   echo "Archived: $ticket"
 }
 
+cmd_unarchive() {
+  local ticket="${1:-}"
+
+  if [[ -z "$ticket" ]]; then
+    echo "Usage: mta-context.sh unarchive <ticket>" >&2
+    exit 1
+  fi
+
+  ensure_dir
+
+  local contexts_file="$CONTEXTS_DIR/contexts.sup"
+  if [[ ! -f "$contexts_file" ]]; then
+    echo "Error: No contexts found" >&2
+    exit 1
+  fi
+
+  local temp_file
+  temp_file=$(mktemp)
+  local found=false
+
+  while IFS= read -r line; do
+    if [[ "$line" == *"ticket:\"$ticket\""* && "$line" != *"archived_at:null"* ]]; then
+      local new_line
+      new_line=$(echo "$line" | super -s -c "put archived_at:=null" -)
+      echo "$new_line" >> "$temp_file"
+      found=true
+    else
+      echo "$line" >> "$temp_file"
+    fi
+  done < "$contexts_file"
+
+  if [[ "$found" == "false" ]]; then
+    rm "$temp_file"
+    echo "Error: Context not found or not archived: $ticket" >&2
+    exit 1
+  fi
+
+  mv "$temp_file" "$contexts_file"
+  echo "Unarchived: $ticket"
+}
+
 # ==============================================================================
 # Import Parsers
 # ==============================================================================
@@ -1160,6 +1201,7 @@ Blockers:
 Status & Archive:
   status [ticket]
   archive <ticket>
+  unarchive <ticket>
 
 Migration:
   import <context.md>              Import old markdown context into SuperDB
@@ -1195,6 +1237,7 @@ main() {
     list-blockers) cmd_list_blockers "$@" ;;
     status) cmd_status "$@" ;;
     archive) cmd_archive "$@" ;;
+    unarchive) cmd_unarchive "$@" ;;
     import) cmd_import "$@" ;;
     help|--help|-h) cmd_help ;;
     *)
