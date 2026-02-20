@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# yah.sh - "You Are Here" - Show git worktrees and Claude activity
+# work-context - Show git worktrees and Claude activity
 #
-# Usage: yah [command] [args]
+# Usage: work-context [command] [args]
 #
 
 set -euo pipefail
@@ -18,8 +18,16 @@ RESET='\033[0m'
 # Cloud session branch pattern (Claude web sessions use claude/ prefix or 13-digit timestamps)
 CLOUD_SESSION_BRANCH_PATTERN='(^claude/|[0-9]{13}$)'
 
-# Config file (SuperJSON format)
-yah_config="${YAH_CONFIG:-$HOME/.config/yah.sup}"
+# Config file (SuperJSON format) - check new name first, fall back to old yah.sup
+if [[ -n "${WORK_CONTEXT_CONFIG:-}" ]]; then
+    wc_config="$WORK_CONTEXT_CONFIG"
+elif [[ -f "$HOME/.config/work-context.sup" ]]; then
+    wc_config="$HOME/.config/work-context.sup"
+elif [[ -f "$HOME/.config/yah.sup" ]]; then
+    wc_config="$HOME/.config/yah.sup"
+else
+    wc_config=""
+fi
 
 # Load config with super
 repos_to_check=()
@@ -27,24 +35,24 @@ github_orgs=()
 standup_script=""
 tz_offset_hours=-6
 
-if [[ -f "$yah_config" ]]; then
+if [[ -n "$wc_config" ]] && [[ -f "$wc_config" ]]; then
     # Read repos array
     while IFS= read -r repo; do
         # Expand ~ to $HOME
         repos_to_check+=("${repo/#\~/$HOME}")
-    done < <(super -f line -c "unnest repos" "$yah_config" 2>/dev/null)
+    done < <(super -f line -c "unnest repos" "$wc_config" 2>/dev/null)
 
     # Read standup script (optional field)
-    standup_script=$(super -f line -c "grep('standup_script', typeof(this)::string) ? standup_script : ''" "$yah_config")
+    standup_script=$(super -f line -c "grep('standup_script', typeof(this)::string) ? standup_script : ''" "$wc_config")
     standup_script="${standup_script/#\~/$HOME}"
 
     # Read timezone offset (optional field)
-    tz_offset_hours=$(super -f line -c "grep('tz_offset_hours', typeof(this)::string) ? tz_offset_hours : -6" "$yah_config")
+    tz_offset_hours=$(super -f line -c "grep('tz_offset_hours', typeof(this)::string) ? tz_offset_hours : -6" "$wc_config")
 
     # Read github_orgs array (optional)
     while IFS= read -r org; do
         [[ -n "$org" ]] && github_orgs+=("$org")
-    done < <(super -f line -c "where has(github_orgs) | unnest github_orgs" "$yah_config" 2>/dev/null)
+    done < <(super -f line -c "where has(github_orgs) | unnest github_orgs" "$wc_config" 2>/dev/null)
 fi
 
 # Fallback defaults if no config or empty repos
@@ -525,7 +533,7 @@ function open_prs() {
     echo -e "${DIM}───────────────────────────────────────────────────────────────${RESET}"
 
     if [[ ${#github_orgs[@]} -eq 0 ]]; then
-        echo -e "${DIM}(no github_orgs configured in ${yah_config})${RESET}"
+        echo -e "${DIM}(no github_orgs configured in ${wc_config:-~/.config/work-context.sup})${RESET}"
         echo
         return
     fi
@@ -659,11 +667,12 @@ function data() {
 }
 
 function config() {
-    echo -e "${CYAN}${BOLD}YAH Configuration${RESET}"
-    echo -e "${DIM}Config file: ${yah_config}${RESET}"
+    local config_display="${wc_config:-~/.config/work-context.sup}"
+    echo -e "${CYAN}${BOLD}Work Context Configuration${RESET}"
+    echo -e "${DIM}Config file: ${config_display}${RESET}"
     echo
 
-    if [[ ! -f "$yah_config" ]]; then
+    if [[ -z "$wc_config" ]] || [[ ! -f "$wc_config" ]]; then
         echo -e "${DIM}No config file found. Using defaults.${RESET}"
         echo
     fi
@@ -691,15 +700,15 @@ function config() {
     echo -e "Standup script: ${standup_script:-${DIM}(none)${RESET}}"
     echo "Timezone offset: UTC${tz_offset_hours}"
 
-    if [[ ! -f "$yah_config" ]]; then
+    if [[ -z "$wc_config" ]] || [[ ! -f "$wc_config" ]]; then
         echo
-        echo -e "${DIM}Create ${yah_config} (SuperJSON) to customize.${RESET}"
+        echo -e "${DIM}Create ~/.config/work-context.sup (SuperJSON) to customize.${RESET}"
     fi
 }
 
 function usage() {
     cat <<-EOF
-	Usage: yah <command> [args]
+	Usage: work-context <command> [args]
 
 	Commands:
 	  all [days]            Show worktrees, PRs, cloud sessions, and conversations (default: 7)
@@ -720,8 +729,8 @@ function usage() {
 	  etc.
 
 	Configuration:
-	  Settings in ${yah_config} (SuperJSON format).
-	  Run 'yah config' to see current settings.
+	  Settings in ~/.config/work-context.sup (SuperJSON format).
+	  Run 'work-context config' to see current settings.
 
 	Cloud Sessions:
 	  Tracks branches matching Claude web session patterns:
@@ -730,13 +739,13 @@ function usage() {
 	  Requires gh CLI to be installed and authenticated.
 
 	Examples:
-	  yah                   # default: all 7
-	  yah conversations 0   # today only
-	  yah conversations 1   # today + yesterday
-	  yah all 2             # today + 2 days back
-	  yah search mcp
-	  yah search "fivetran" 7
-	  yah data 1            # JSON output for /yah skill
+	  work-context                   # default: all 7
+	  work-context conversations 0   # today only
+	  work-context conversations 1   # today + yesterday
+	  work-context all 2             # today + 2 days back
+	  work-context search mcp
+	  work-context search "fivetran" 7
+	  work-context data 1            # JSON output for skills
 	EOF
 }
 
