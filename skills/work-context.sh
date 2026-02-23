@@ -333,14 +333,15 @@ function conversations() {
         return
     fi
 
-    # Calculate cutoff as local midnight N days ago, in UTC
+    # Calculate cutoff as local midnight N days ago, expressed in UTC
     # days=0 means "today", days=1 means "today+yesterday", etc.
-    # tz_offset_hours is negative for west of UTC (e.g., -6 for CST)
-    local utc_midnight_hour=$((0 - tz_offset_hours))
+    # Use local time to get the right calendar date, then convert to UTC
     local days_back=$days
-    local cutoff
-    cutoff=$(date -u -v-${days_back}d +"%Y-%m-%dT$(printf '%02d' $utc_midnight_hour):00" 2>/dev/null || \
-             date -u -d "${days_back} days ago" +"%Y-%m-%dT$(printf '%02d' $utc_midnight_hour):00")
+    local local_date
+    local_date=$(date -v-${days_back}d +"%Y-%m-%d" 2>/dev/null || \
+                 date -d "${days_back} days ago" +"%Y-%m-%d")
+    local utc_midnight_hour=$((0 - tz_offset_hours))
+    local cutoff="${local_date}T$(printf '%02d' $utc_midnight_hour):00"
 
     # Collect and filter sessions from all projects
     # Convert UTC to local time using tz_offset_hours (e.g., -6 for CST)
