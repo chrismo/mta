@@ -276,6 +276,9 @@ cmd_join() {
 }
 
 cmd_leave() {
+  # TODO: When status is "done", check for unresolved blockers on this ticket
+  # and warn the user before allowing the leave. Blockers that are still open
+  # when work is marked done are likely stale and should be resolved or removed.
   local ticket="${1:-}"
   local session_id="${2:-}"
   local status="${3:-}"
