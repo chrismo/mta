@@ -35,7 +35,7 @@ mta-context.sh leave PROJ-1641 ds5/session-abc done "implemented scaling"
 ### Prerequisites
 
 - [SuperDB](https://superdb.org/) (`super` CLI)
-- Bash 4+
+- Bash 3.2
 
 ```bash
 # macOS

@@ -15,7 +15,7 @@ MTA coordinates multiple Claude sessions working on the same ticket via shared c
 ## Dependencies
 
 - [SuperDB](https://superdb.org/) (`super` CLI) - data storage and queries
-- Bash 4+
+- Bash 3.2
 
 ## Data Location
 
@@ -27,4 +27,4 @@ All context data lives in `~/.claude/contexts/` as `.sup` files. Override with `
 bats test/mta-context.bats
 ```
 
-**Trust-driven development**: Always write failing tests before adding new functionality. Add the test, confirm it fails, then implement the feature.
+**TDD is mandatory for ALL code changes** — bug fixes, refactors, new features. Write a failing test first, confirm it fails, then implement. For refactors, write tests that pin existing behavior before changing the code.
