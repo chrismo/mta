@@ -276,7 +276,7 @@ function collect_session_data() {
     # Collect session data from per-conversation JSONL files
     # Each .jsonl has type=user messages with sessionId, gitBranch, timestamp, message.content
     local days_filter="${1:-30}"
-    local projects_dir="$HOME/.claude/projects"
+    local projects_dir="${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}"
     [[ -d "$projects_dir" ]] || return
 
     local now
@@ -333,27 +333,8 @@ function conversations() {
         return
     fi
 
-    # Calculate cutoff as local midnight N days ago, expressed in UTC
-    # days=0 means "today", days=1 means "today+yesterday", etc.
-    # Use local time to get the right calendar date, then convert to UTC
-    local days_back=$days
-    local local_date
-    local_date=$(date -v-${days_back}d +"%Y-%m-%d" 2>/dev/null || \
-                 date -d "${days_back} days ago" +"%Y-%m-%d")
-    local utc_midnight_hour=$((0 - tz_offset_hours))
-    local cutoff="${local_date}T$(printf '%02d' $utc_midnight_hour):00"
-
-    # Collect and filter sessions from all projects
-    # Convert UTC to local time using tz_offset_hours (e.g., -6 for CST)
-    collect_session_data "$days" | super -f json -c "
-      where created >= '${cutoff}'
-      | put local_time:=created::time + '${tz_offset_hours}h'::duration
-      | put date:=strftime('%Y-%m-%d', local_time)
-      | put time:=strftime('%H:%M', local_time)
-      | put prompt:=replace(firstPrompt[0:80], '\\n', ' ')
-      | put msgs:=messageCount
-      | sort -created
-      | cut date, time, project, msgs, prompt
+    conversations_json "$days" | super -f json -c "
+      cut date, time, project, msgs:=messageCount, prompt:=first_prompt[0:80]
     " - 2>/dev/null | mlr --j2p --barred cat
 
     echo
@@ -585,17 +566,19 @@ function worktrees_json() {
 
 function conversations_json() {
     local days="${1:-7}"
-    local projects_dir="$HOME/.claude/projects"
+    local projects_dir="${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}"
 
     [[ -d "$projects_dir" ]] || return
 
-    # Calculate cutoff as local midnight N days ago, in UTC
+    # Calculate cutoff as local midnight N days ago, expressed in UTC
     # days=0 means "today", days=1 means "today+yesterday", etc.
-    local utc_midnight_hour=$((0 - tz_offset_hours))
+    # Use local time to get the right calendar date, then convert to UTC
     local days_back=$days
-    local cutoff
-    cutoff=$(date -u -v-${days_back}d +"%Y-%m-%dT$(printf '%02d' $utc_midnight_hour):00" 2>/dev/null || \
-             date -u -d "${days_back} days ago" +"%Y-%m-%dT$(printf '%02d' $utc_midnight_hour):00")
+    local local_date
+    local_date=$(date -v-${days_back}d +"%Y-%m-%d" 2>/dev/null || \
+                 date -d "${days_back} days ago" +"%Y-%m-%d")
+    local utc_midnight_hour=$((0 - tz_offset_hours))
+    local cutoff="${local_date}T$(printf '%02d' $utc_midnight_hour):00"
 
     # Each conversation as separate record with full metadata
     # Convert UTC to local time using tz_offset_hours
