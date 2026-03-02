@@ -843,6 +843,235 @@ MDEOF
 }
 
 # ==============================================================================
+# Chunks (RISC grading)
+# ==============================================================================
+
+@test "add-chunk creates chunks.sup" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "ceiling calc utility using bc" 3
+  assert_success
+  assert_file_exists "chunks.sup"
+}
+
+@test "add-chunk records chunk with required fields" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "ceiling calc utility" 3
+  assert_success
+  assert_file_contains "chunks.sup" "ticket:\"PROJ-1641\""
+  assert_file_contains "chunks.sup" "commit:\"a3f7e2b\""
+  assert_file_contains "chunks.sup" "summary:\"ceiling calc utility\""
+  assert_file_contains "chunks.sup" "risc:3"
+  assert_file_contains "chunks.sup" "reviewed_at:null"
+}
+
+@test "add-chunk accepts optional files and risc-reason flags" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "ceiling calc" 3 \
+    --files="src/math.sh,src/util.sh" \
+    --risc-reason="pure function, isolated"
+  assert_success
+  assert_file_contains "chunks.sup" "files:\"src/math.sh,src/util.sh\""
+  assert_file_contains "chunks.sup" "risc_reason:\"pure function, isolated\""
+}
+
+@test "add-chunk sets timestamp" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "some change" 5
+  assert_success
+  assert_file_contains "chunks.sup" "ts:\"20"
+}
+
+@test "add-chunk fails without required args" {
+  run mta add-chunk PROJ-1641 a3f7e2b
+  assert_failure
+}
+
+@test "add-chunk handles special characters in summary" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "Fix \"quoted\" path/to/file" 4
+  assert_success
+  assert_file_contains "chunks.sup" "path/to/file"
+}
+
+@test "add-chunk allows multiple chunks for same commit" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  mta add-chunk PROJ-1641 a3f7e2b "retry backoff logic" 8 --files="src/sync.sh,src/async.sh"
+  mta add-chunk PROJ-1641 a3f7e2b "test scaffolding" 1 --files="test/retry.test.sh"
+
+  local chunk_count
+  chunk_count=$(grep -c "commit:\"a3f7e2b\"" "$TEST_CONTEXTS_DIR/chunks.sup")
+  [[ "$chunk_count" == "2" ]]
+}
+
+# ==============================================================================
+# List Chunks
+# ==============================================================================
+
+@test "list-chunks shows chunks for a ticket" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+
+  run mta list-chunks PROJ-1641
+  assert_success
+  [[ "$output" == *"retry logic"* ]]
+  [[ "$output" == *"config plumbing"* ]]
+}
+
+@test "list-chunks --unreviewed shows only unreviewed chunks" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+  mta review-chunk PROJ-1641 "config plumbing"
+
+  run mta list-chunks PROJ-1641 --unreviewed
+  assert_success
+  [[ "$output" == *"retry logic"* ]]
+  [[ "$output" != *"config plumbing"* ]]
+}
+
+@test "list-chunks filters by ticket" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta create-context PROJ-1670 "CI experiment"
+  mta add-chunk PROJ-1641 a3f7e2b "auth change" 7
+  mta add-chunk PROJ-1670 c5d6e7f "ci tweak" 2
+
+  run mta list-chunks PROJ-1641
+  assert_success
+  [[ "$output" == *"auth change"* ]]
+  [[ "$output" != *"ci tweak"* ]]
+}
+
+# ==============================================================================
+# Review Chunk
+# ==============================================================================
+
+@test "review-chunk marks chunk as reviewed" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta review-chunk PROJ-1641 "retry logic"
+  assert_success
+  # reviewed_at should no longer be null for this chunk
+  ! grep -q 'summary:"retry logic".*reviewed_at:null' "$TEST_CONTEXTS_DIR/chunks.sup"
+}
+
+@test "review-chunk sets reviewed_at timestamp" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta review-chunk PROJ-1641 "retry logic"
+  assert_success
+  assert_file_contains "chunks.sup" "reviewed_at:\"20"
+}
+
+@test "review-chunk fails for nonexistent chunk" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta review-chunk PROJ-1641 "nonexistent"
+  assert_failure
+}
+
+@test "review-chunk only marks first matching unreviewed chunk" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+
+  mta review-chunk PROJ-1641 "retry logic"
+
+  # config plumbing should still be unreviewed
+  grep -q 'summary:"config plumbing".*reviewed_at:null' "$TEST_CONTEXTS_DIR/chunks.sup"
+}
+
+# ==============================================================================
+# Debt
+# ==============================================================================
+
+@test "debt shows unreviewed chunk summary for a ticket" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+
+  run mta debt PROJ-1641
+  assert_success
+  [[ "$output" == *"2 unreviewed"* ]]
+}
+
+@test "debt shows weighted score" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+
+  run mta debt PROJ-1641
+  assert_success
+  # weighted debt = sum of risc scores of unreviewed chunks = 8 + 2 = 10
+  [[ "$output" == *"weighted: 10"* ]]
+}
+
+@test "debt decreases after review" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+  mta review-chunk PROJ-1641 "config plumbing"
+
+  run mta debt PROJ-1641
+  assert_success
+  [[ "$output" == *"1 unreviewed"* ]]
+  [[ "$output" == *"weighted: 8"* ]]
+}
+
+@test "debt shows zero when all reviewed" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta review-chunk PROJ-1641 "retry logic"
+
+  run mta debt PROJ-1641
+  assert_success
+  [[ "$output" == *"0 unreviewed"* ]]
+  [[ "$output" == *"weighted: 0"* ]]
+}
+
+@test "debt with no ticket shows all active contexts" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta create-context PROJ-1670 "CI experiment"
+  mta add-chunk PROJ-1641 a3f7e2b "auth change" 7
+  mta add-chunk PROJ-1670 c5d6e7f "ci tweak" 2
+
+  run mta debt
+  assert_success
+  [[ "$output" == *"PROJ-1641"* ]]
+  [[ "$output" == *"PROJ-1670"* ]]
+}
+
+@test "debt highlights high-RISC count" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+  mta add-chunk PROJ-1641 c9d0e1f "auth refactor" 9
+
+  run mta debt PROJ-1641
+  assert_success
+  # chunks with risc >= 7 are "high-RISC"
+  [[ "$output" == *"2 high-RISC"* ]]
+}
+
+# ==============================================================================
 # Assertion Helpers (bats-assert compatibility)
 # ==============================================================================
 
