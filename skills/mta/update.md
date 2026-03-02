@@ -65,7 +65,22 @@ if you genuinely can't determine which ticket this session is working on.
    mta-context.sh add-blocker <TICKET> "<blocker description>"
    ```
 
-7. Prompt: Should I commit and push? (if there are uncommitted changes)
+7. Record RISC-graded chunks for commits in this session:
+   - Check recent commits: `git log --oneline -10`
+   - For each commit, break it into logical concerns (usually 1:1 with the commit)
+   - Grade each chunk with a RISC score (1-10):
+     - **1-3 Low**: Config, test scaffolding, formatting, comments
+     - **4-6 Medium**: New functions, refactors with clear boundaries, dependency updates
+     - **7-10 High**: Cross-cutting changes, state management, auth/security, error handling that changes failure modes, anything subtle
+   - RISC = **R**each (how much code does this touch?), **I**rreversibility (how hard to undo?), **S**ubtlety (how easy to misunderstand?), **C**onsequence (what breaks if wrong?)
+   ```bash
+   mta-context.sh add-chunk <TICKET> <commit-sha> "<summary>" <risc> \
+     --files="<comma-separated files>" \
+     --risc-reason="<why this score>"
+   ```
+   Run once per chunk. Multiple chunks per commit are fine if the commit has mixed concerns.
+
+8. Prompt: Should I commit and push? (if there are uncommitted changes)
 
 ## Decision Extraction
 
@@ -91,6 +106,10 @@ Decisions:
 Tasks:
 - Implement retry logic for failed API calls
 - Add unit tests for ceiling calculation
+
+Chunks (RISC-graded):
+- a3f7e2b "ceiling calc utility" RISC:3 (pure function, isolated)
+- a3f7e2b "retry backoff logic" RISC:8 (cross-cutting, timing-sensitive)
 
 Uncommitted changes:
 - src/services/auth/auth-handler.sh (modified)

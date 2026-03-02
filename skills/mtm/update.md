@@ -36,9 +36,14 @@ Lightweight mid-day check of coordinated work and today's activity.
    mta-context.sh list-sessions
    ```
 
-5. Run `work-context conversations 0` (today only) for quick session overview
+5. Check cognitive debt:
+   ```bash
+   mta-context.sh debt
+   ```
 
-6. Quick PR check from `work-context data 0`:
+6. Run `work-context conversations 0` (today only) for quick session overview
+
+7. Quick PR check from `work-context data 0`:
    - Only flag PRs needing immediate action (approved, changes requested)
    - Skip the full PR breakdown (that's for start-day)
 
@@ -48,8 +53,8 @@ Lightweight mid-day check of coordinated work and today's activity.
 ## Quick Status
 
 ### Active Coordinations
-- **PROJ-1641**: 2 active sessions | no blockers
-- **INCIDENT-outage**: 1 session | BLOCKING
+- **PROJ-1641**: 2 active sessions | no blockers | debt: 5 unreviewed (3 high-RISC)
+- **INCIDENT-outage**: 1 session | BLOCKING | debt: 0
 
 ### Blockers
 - INCIDENT-outage blocking PROJ-1641

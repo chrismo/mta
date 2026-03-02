@@ -38,14 +38,19 @@ Full overview of all coordinated work - use this to plan your day.
    mta-context.sh list-blockers --unresolved
    ```
 
-6. Correlate: which conversations map to which contexts
+6. Check cognitive debt across all contexts:
+   ```bash
+   mta-context.sh debt
+   ```
 
-7. **Review open PRs** from `work-context data` output:
+7. Correlate: which conversations map to which contexts
+
+8. **Review open PRs** from `work-context data` output:
    - Match PRs to active contexts/worktrees by branch name
    - Flag PRs needing attention: approved but not merged, changes requested, stale (no updates in 7+ days)
    - Note any PRs not tied to an active context (forgotten work)
 
-8. Output a unified status showing:
+9. Output a unified status showing:
    - Active coordinated efforts (tickets with contexts)
    - Worktrees and their coordination status
    - Blockers or dependencies between efforts
@@ -59,6 +64,10 @@ Full overview of all coordinated work - use this to plan your day.
 ### Active Coordinations
 - **PROJ-1641**: 3 sessions (ds5/92e7df7e, ds5/a1b2c3d4, ds8/x9y8z7w6) | 5 decisions | no blockers
 - **INCIDENT-outage**: 1 session (ds4/f3e2d1c0) | 1 decision | blocking PROJ-1641
+
+### Cognitive Debt
+- **PROJ-1641**: 5 unreviewed | weighted: 28 | 3 high-RISC
+- **INCIDENT-outage**: 0 unreviewed | weighted: 0 | 0 high-RISC
 
 ### Open PRs
 **Needs action:**

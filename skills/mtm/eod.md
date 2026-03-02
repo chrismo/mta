@@ -42,12 +42,18 @@ Wind down coordinated work across Claude sessions.
    mta-context.sh list-blockers --unresolved
    ```
 
-5. **Review open PRs** from `work-context data 7`:
+5. **Check cognitive debt**:
+   ```bash
+   mta-context.sh debt
+   ```
+   Flag contexts where debt grew today (compare chunk timestamps to today's date).
+
+6. **Review open PRs** from `work-context data 7`:
    - Flag approved PRs not yet merged (could merge before EOD)
    - Flag PRs with changes requested (need follow-up tomorrow)
    - Note any PRs updated today that are still awaiting review
 
-6. **Output summary**:
+7. **Output summary**:
    ```
    ## End of Day
 
@@ -57,6 +63,10 @@ Wind down coordinated work across Claude sessions.
    ### PRs to Act On
    - #12345 "Fix auth" — APPROVED, merge before EOD?
    - #12350 "Add caching" — CHANGES REQUESTED, follow up tomorrow
+
+   ### Cognitive Debt
+   - PROJ-1641: 5 unreviewed | weighted: 28 | 3 high-RISC (grew +2 today)
+   - Consider `/mtm:quiz` or `/mtm:premortem` for high-RISC items
 
    ### Coordinated Work
    - PROJ-1641: [status summary] | Tomorrow: [next steps]

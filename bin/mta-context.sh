@@ -1170,6 +1170,166 @@ cmd_import() {
   echo "Source: $md_file (kept as-is)"
 }
 
+# ==============================================================================
+# Chunks (Cognitive Debt / RISC Grading)
+# ==============================================================================
+
+cmd_add_chunk() {
+  local ticket="${1:-}"
+  local commit="${2:-}"
+  local summary="${3:-}"
+  local risc="${4:-}"
+
+  if [[ -z "$ticket" || -z "$commit" || -z "$summary" || -z "$risc" ]]; then
+    echo "Usage: mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--risc-reason=...]" >&2
+    exit 1
+  fi
+
+  shift 4
+
+  # Parse optional flags
+  local files="" risc_reason=""
+  for arg in "$@"; do
+    case "$arg" in
+      --files=*) files="${arg#*=}" ;;
+      --risc-reason=*) risc_reason="${arg#*=}" ;;
+    esac
+  done
+
+  ensure_dir
+
+  summary=$(escape_sup_text "$summary")
+  local record="{ticket:\"$ticket\",commit:\"$commit\",summary:\"$summary\",risc:$risc,ts:\"$(now)\",reviewed_at:null"
+  [[ -n "$files" ]] && record="$record,files:\"$(escape_sup_text "$files")\""
+  [[ -n "$risc_reason" ]] && record="$record,risc_reason:\"$(escape_sup_text "$risc_reason")\""
+  record="$record}"
+
+  append_record "chunks.sup" "$record"
+  echo "Chunk recorded."
+}
+
+cmd_list_chunks() {
+  local ticket="${1:-}"
+  local unreviewed_only=false
+
+  for arg in "$@"; do
+    case "$arg" in
+      --unreviewed) unreviewed_only=true ;;
+      *) ticket="$arg" ;;
+    esac
+  done
+
+  if [[ -z "$ticket" ]]; then
+    echo "Usage: mta-context.sh list-chunks <ticket> [--unreviewed]" >&2
+    exit 1
+  fi
+
+  ensure_dir
+  if [[ ! -f "$CONTEXTS_DIR/chunks.sup" ]]; then
+    echo "No chunks found."
+    return 0
+  fi
+
+  require_super
+
+  local query="from '$CONTEXTS_DIR/chunks.sup' | where ticket = '$ticket'"
+  [[ "$unreviewed_only" == "true" ]] && query="$query | where reviewed_at is null"
+  query="$query | sort ts desc"
+
+  super -j -c "$query" | grdy
+}
+
+cmd_review_chunk() {
+  local ticket="${1:-}"
+  local pattern="${2:-}"
+
+  if [[ -z "$ticket" || -z "$pattern" ]]; then
+    echo "Usage: mta-context.sh review-chunk <ticket> <summary-pattern>" >&2
+    exit 1
+  fi
+
+  ensure_dir
+
+  local chunks_file="$CONTEXTS_DIR/chunks.sup"
+  if [[ ! -f "$chunks_file" ]]; then
+    echo "Error: No chunks found" >&2
+    exit 1
+  fi
+
+  local temp_file
+  temp_file=$(mktemp)
+  local found=false
+  local now_ts
+  now_ts=$(now)
+
+  while IFS= read -r line; do
+    if [[ "$line" == *"$pattern"* && "$line" == *"reviewed_at:null"* && "$found" == "false" ]]; then
+      local new_line
+      new_line=$(echo "$line" | super -s -c "put reviewed_at:='$now_ts'" -)
+      echo "$new_line" >> "$temp_file"
+      found=true
+    else
+      echo "$line" >> "$temp_file"
+    fi
+  done < "$chunks_file"
+
+  if [[ "$found" == "false" ]]; then
+    rm "$temp_file"
+    echo "Error: Unreviewed chunk not found matching: $pattern" >&2
+    exit 1
+  fi
+
+  mv "$temp_file" "$chunks_file"
+  echo "Chunk reviewed."
+}
+
+_debt_for_ticket() {
+  local ticket="$1"
+  local chunks_file="$CONTEXTS_DIR/chunks.sup"
+
+  local unreviewed_count weighted high_risc_count
+  unreviewed_count=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket' and reviewed_at is null | count()" 2>/dev/null || echo "0")
+  weighted=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket' and reviewed_at is null | sum(risc)" 2>/dev/null || echo "0")
+  high_risc_count=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket' and reviewed_at is null and risc >= 7 | count()" 2>/dev/null || echo "0")
+
+  # Handle null/empty from super
+  [[ -z "$unreviewed_count" || "$unreviewed_count" == "null" ]] && unreviewed_count=0
+  [[ -z "$weighted" || "$weighted" == "null" ]] && weighted=0
+  [[ -z "$high_risc_count" || "$high_risc_count" == "null" ]] && high_risc_count=0
+
+  echo "$ticket: $unreviewed_count unreviewed | weighted: $weighted | $high_risc_count high-RISC"
+}
+
+cmd_debt() {
+  local ticket="${1:-}"
+
+  ensure_dir
+  require_super
+
+  if [[ ! -f "$CONTEXTS_DIR/chunks.sup" ]]; then
+    echo "No chunks found."
+    return 0
+  fi
+
+  if [[ -n "$ticket" ]]; then
+    _debt_for_ticket "$ticket"
+  else
+    # Show debt for all active contexts
+    if [[ ! -f "$CONTEXTS_DIR/contexts.sup" ]]; then
+      echo "No contexts found."
+      return 0
+    fi
+
+    local tickets
+    tickets=$(super -f line -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | cut ticket" 2>/dev/null | sed 's/{ticket:"\(.*\)"}/\1/')
+
+    while IFS= read -r t; do
+      [[ -z "$t" ]] && continue
+      _debt_for_ticket "$t"
+    done <<< "$tickets"
+  fi
+}
+
 cmd_help() {
   less -FX <<EOF
 mta-context.sh - MTA context management via SuperDB
@@ -1200,6 +1360,12 @@ Blockers:
   add-blocker <ticket> <text>
   resolve-blocker <ticket> <blocker-text-pattern>
   list-blockers [--unresolved]
+
+Chunks (Cognitive Debt):
+  add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--risc-reason=...]
+  list-chunks <ticket> [--unreviewed]
+  review-chunk <ticket> <summary-pattern>
+  debt [ticket]                      Show cognitive debt (unreviewed chunks)
 
 Status & Archive:
   status [ticket]
@@ -1238,6 +1404,10 @@ main() {
     add-blocker) cmd_add_blocker "$@" ;;
     resolve-blocker) cmd_resolve_blocker "$@" ;;
     list-blockers) cmd_list_blockers "$@" ;;
+    add-chunk) cmd_add_chunk "$@" ;;
+    list-chunks) cmd_list_chunks "$@" ;;
+    review-chunk) cmd_review_chunk "$@" ;;
+    debt) cmd_debt "$@" ;;
     status) cmd_status "$@" ;;
     archive) cmd_archive "$@" ;;
     unarchive) cmd_unarchive "$@" ;;

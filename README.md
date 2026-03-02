@@ -92,6 +92,19 @@ mta-context.sh resolve-blocker <ticket> <pattern>
 mta-context.sh list-blockers [--unresolved]
 ```
 
+### Chunks (Cognitive Debt)
+
+Track what the human has and hasn't reviewed. Each commit is broken into RISC-graded chunks.
+
+```bash
+mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--risc-reason=...]
+mta-context.sh list-chunks <ticket> [--unreviewed]
+mta-context.sh review-chunk <ticket> <summary-pattern>
+mta-context.sh debt [ticket]    # Show cognitive debt summary
+```
+
+RISC (1-10) = **R**each, **I**rreversibility, **S**ubtlety, **C**onsequence. Higher = needs more human attention.
+
 ### Status
 
 ```bash
@@ -108,7 +121,8 @@ Data is stored in `~/.claude/contexts/` as `.sup` files:
 ├── sessions.sup    # Active/historical sessions
 ├── decisions.sup   # Decision log with timestamps
 ├── tasks.sup       # Outstanding tasks
-└── blockers.sup    # Active blockers
+├── blockers.sup    # Active blockers
+└── chunks.sup      # RISC-graded commit chunks (cognitive debt)
 ```
 
 Override with `MTA_CONTEXTS_DIR` environment variable.
@@ -156,6 +170,8 @@ If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/ski
 - `/mtm:new-context` - Create a new shared context
 - `/mtm:archive` - Archive a completed context
 - `/mtm:slot` - Generate a claude-slot command for a ticket
+- `/mtm:quiz` - Interactive comprehension check on high-RISC chunks
+- `/mtm:premortem` - Proactive risk briefing on unreviewed high-RISC code
 
 ## Running Tests
 
