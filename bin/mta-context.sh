@@ -1185,6 +1185,11 @@ cmd_add_chunk() {
     exit 1
   fi
 
+  if ! [[ "$risc" =~ ^[0-9]+$ ]] || (( risc < 1 || risc > 10 )); then
+    echo "Error: risc must be an integer between 1 and 10" >&2
+    exit 1
+  fi
+
   shift 4
 
   # Parse optional flags
@@ -1209,13 +1214,13 @@ cmd_add_chunk() {
 }
 
 cmd_list_chunks() {
-  local ticket="${1:-}"
-  local unreviewed_only=false
+  local ticket="" unreviewed_only=false
 
   for arg in "$@"; do
     case "$arg" in
       --unreviewed) unreviewed_only=true ;;
-      *) ticket="$arg" ;;
+      --*) ;;
+      *) [[ -z "$ticket" ]] && ticket="$arg" ;;
     esac
   done
 
@@ -1263,7 +1268,7 @@ cmd_review_chunk() {
   now_ts=$(now)
 
   while IFS= read -r line; do
-    if [[ "$line" == *"$pattern"* && "$line" == *"reviewed_at:null"* && "$found" == "false" ]]; then
+    if [[ "$line" == *"ticket:\"$ticket\""* && "$line" == *"$pattern"* && "$line" == *"reviewed_at:null"* && "$found" == "false" ]]; then
       local new_line
       new_line=$(echo "$line" | super -s -c "put reviewed_at:='$now_ts'" -)
       echo "$new_line" >> "$temp_file"

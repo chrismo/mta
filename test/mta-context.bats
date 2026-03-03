@@ -993,6 +993,54 @@ MDEOF
   grep -q 'summary:"config plumbing".*reviewed_at:null' "$TEST_CONTEXTS_DIR/chunks.sup"
 }
 
+@test "review-chunk scopes to ticket — same summary in different tickets" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta create-context PROJ-1670 "CI experiment"
+  mta add-chunk PROJ-1641 a3f7e2b "config plumbing" 5
+  mta add-chunk PROJ-1670 c5d6e7f "config plumbing" 2
+
+  mta review-chunk PROJ-1670 "config plumbing"
+
+  # PROJ-1641's chunk should still be unreviewed
+  grep -q 'ticket:"PROJ-1641".*summary:"config plumbing".*reviewed_at:null' "$TEST_CONTEXTS_DIR/chunks.sup"
+  # PROJ-1670's chunk should be reviewed
+  ! grep -q 'ticket:"PROJ-1670".*summary:"config plumbing".*reviewed_at:null' "$TEST_CONTEXTS_DIR/chunks.sup"
+}
+
+# ==============================================================================
+# Add-chunk validation
+# ==============================================================================
+
+@test "add-chunk rejects non-integer risc" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "some change" "abc"
+  assert_failure
+}
+
+@test "add-chunk rejects risc below 1" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "some change" 0
+  assert_failure
+}
+
+@test "add-chunk rejects risc above 10" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "some change" 11
+  assert_failure
+}
+
+@test "add-chunk accepts risc at boundaries" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "low end" 1
+  assert_success
+  run mta add-chunk PROJ-1641 b8c1d4e "high end" 10
+  assert_success
+}
+
 # ==============================================================================
 # Debt
 # ==============================================================================
