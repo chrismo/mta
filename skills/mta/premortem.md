@@ -1,5 +1,5 @@
 ---
-name: mtm:premortem
+name: mta:premortem
 description: Proactive risk briefing on unreviewed high-RISC chunks
 allowed-tools: Bash
 ---
@@ -11,22 +11,34 @@ Surface what could go wrong in unreviewed high-RISC code before it bites you.
 ## Usage
 
 ```
-/mtm:premortem [ticket] [--all]
+/mta:premortem [ticket] [--all]
 ```
+
+If ticket is omitted, use the context from `/mta:join` or detect from branch.
 
 By default, only shows chunks with RISC >= 7. Use `--all` to include all unreviewed chunks.
 
+## Context Discovery (IMPORTANT)
+
+After context compaction, this session may not remember having joined a context.
+Do NOT give up quickly. Follow this discovery chain:
+
+1. **Check memory**: Do you remember a ticket from `/mta:join`?
+2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
+3. **Search contexts**:
+   ```bash
+   mta-context.sh get-context <TICKET>
+   mta-context.sh list-contexts
+   ```
+4. **If context found**: Proceed — treat it as if you joined.
+5. **If no context found**: Ask the user which ticket to review.
+
 ## What This Does
 
-1. Get unreviewed chunks:
+1. Get unreviewed chunks for the current ticket:
    ```bash
    mta-context.sh list-chunks <TICKET> --unreviewed
    ```
-   If no ticket:
-   ```bash
-   mta-context.sh debt
-   ```
-   Pick the context with highest weighted debt.
 
 2. Filter to high-RISC chunks (RISC >= 7) unless `--all` specified.
 

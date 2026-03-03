@@ -97,7 +97,7 @@ mta-context.sh list-blockers [--unresolved]
 Track what the human has and hasn't reviewed. Each commit is broken into RISC-graded chunks.
 
 ```bash
-mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--risc-reason=...]
+mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]
 mta-context.sh list-chunks <ticket> [--unreviewed]
 mta-context.sh review-chunk <ticket> <summary-pattern>
 mta-context.sh debt [ticket]    # Show cognitive debt summary
@@ -170,8 +170,8 @@ If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/ski
 - `/mtm:new-context` - Create a new shared context
 - `/mtm:archive` - Archive a completed context
 - `/mtm:slot` - Generate a claude-slot command for a ticket
-- `/mtm:quiz` - Interactive comprehension check on high-RISC chunks
-- `/mtm:premortem` - Proactive risk briefing on unreviewed high-RISC code
+- `/mta:quiz` - Interactive comprehension check on high-RISC chunks
+- `/mta:premortem` - Proactive risk briefing on unreviewed high-RISC code
 
 ## Running Tests
 

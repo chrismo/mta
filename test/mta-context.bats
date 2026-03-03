@@ -1042,6 +1042,77 @@ MDEOF
 }
 
 # ==============================================================================
+# Flexible chunk granularity (multi-commit, line ranges)
+# ==============================================================================
+
+@test "add-chunk accepts multi-commit SHAs" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 "a3f7e2b,b8c1d4e" "IAM workaround" 7
+  assert_success
+  assert_file_contains "chunks.sup" "commit:\"a3f7e2b,b8c1d4e\""
+}
+
+@test "add-chunk accepts --lines flag" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "timer activation fix" 6 \
+    --files="update-sources.sh" --lines="update-sources.sh:42-58"
+  assert_success
+  assert_file_contains "chunks.sup" "lines:\"update-sources.sh:42-58\""
+}
+
+@test "add-chunk accepts multi-file line ranges" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 "a3f7e2b,b8c1d4e" "IAM workaround" 7 \
+    --files="export-data.sh,rescue-chunks.sh" \
+    --lines="export-data.sh:120-135,rescue-chunks.sh:1-40"
+  assert_success
+  assert_file_contains "chunks.sup" "lines:\"export-data.sh:120-135,rescue-chunks.sh:1-40\""
+  assert_file_contains "chunks.sup" "commit:\"a3f7e2b,b8c1d4e\""
+}
+
+@test "add-chunk without --lines omits lines field" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta add-chunk PROJ-1641 a3f7e2b "config cleanup" 2 \
+    --files="config-a.sh,config-b.sh"
+  assert_success
+  ! grep -q "lines:" "$TEST_CONTEXTS_DIR/chunks.sup"
+}
+
+@test "list-chunks shows chunks with lines field" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "timer fix" 6 \
+    --files="update-sources.sh" --lines="update-sources.sh:42-58"
+
+  run mta list-chunks PROJ-1641
+  assert_success
+  [[ "$output" == *"timer fix"* ]]
+}
+
+@test "review-chunk works with multi-commit chunks" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 "a3f7e2b,b8c1d4e" "IAM workaround" 7
+
+  run mta review-chunk PROJ-1641 "IAM workaround"
+  assert_success
+  ! grep -q 'summary:"IAM workaround".*reviewed_at:null' "$TEST_CONTEXTS_DIR/chunks.sup"
+}
+
+@test "review-chunk works with chunks that have lines" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "timer fix" 6 \
+    --files="update-sources.sh" --lines="update-sources.sh:42-58"
+
+  run mta review-chunk PROJ-1641 "timer fix"
+  assert_success
+  ! grep -q 'summary:"timer fix".*reviewed_at:null' "$TEST_CONTEXTS_DIR/chunks.sup"
+}
+
+# ==============================================================================
 # Debt
 # ==============================================================================
 

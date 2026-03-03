@@ -1181,7 +1181,7 @@ cmd_add_chunk() {
   local risc="${4:-}"
 
   if [[ -z "$ticket" || -z "$commit" || -z "$summary" || -z "$risc" ]]; then
-    echo "Usage: mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--risc-reason=...]" >&2
+    echo "Usage: mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]" >&2
     exit 1
   fi
 
@@ -1193,11 +1193,12 @@ cmd_add_chunk() {
   shift 4
 
   # Parse optional flags
-  local files="" risc_reason=""
+  local files="" risc_reason="" lines=""
   for arg in "$@"; do
     case "$arg" in
       --files=*) files="${arg#*=}" ;;
       --risc-reason=*) risc_reason="${arg#*=}" ;;
+      --lines=*) lines="${arg#*=}" ;;
     esac
   done
 
@@ -1206,6 +1207,7 @@ cmd_add_chunk() {
   summary=$(escape_sup_text "$summary")
   local record="{ticket:\"$ticket\",commit:\"$commit\",summary:\"$summary\",risc:$risc,ts:\"$(now)\",reviewed_at:null"
   [[ -n "$files" ]] && record="$record,files:\"$(escape_sup_text "$files")\""
+  [[ -n "$lines" ]] && record="$record,lines:\"$(escape_sup_text "$lines")\""
   [[ -n "$risc_reason" ]] && record="$record,risc_reason:\"$(escape_sup_text "$risc_reason")\""
   record="$record}"
 
@@ -1367,7 +1369,7 @@ Blockers:
   list-blockers [--unresolved]
 
 Chunks (Cognitive Debt):
-  add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--risc-reason=...]
+  add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]
   list-chunks <ticket> [--unreviewed]
   review-chunk <ticket> <summary-pattern>
   debt [ticket]                      Show cognitive debt (unreviewed chunks)

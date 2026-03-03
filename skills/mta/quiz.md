@@ -1,5 +1,5 @@
 ---
-name: mtm:quiz
+name: mta:quiz
 description: Interactive comprehension check on high-RISC unreviewed chunks
 allowed-tools: Bash
 ---
@@ -11,22 +11,32 @@ Verify your understanding of what Claude built by answering questions about high
 ## Usage
 
 ```
-/mtm:quiz [ticket]
+/mta:quiz [ticket]
 ```
 
-If ticket is omitted, quiz across all active contexts (highest RISC first).
+If ticket is omitted, use the context from `/mta:join` or detect from branch.
+
+## Context Discovery (IMPORTANT)
+
+After context compaction, this session may not remember having joined a context.
+Do NOT give up quickly. Follow this discovery chain:
+
+1. **Check memory**: Do you remember a ticket from `/mta:join`?
+2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
+3. **Search contexts**:
+   ```bash
+   mta-context.sh get-context <TICKET>
+   mta-context.sh list-contexts
+   ```
+4. **If context found**: Proceed — treat it as if you joined.
+5. **If no context found**: Ask the user which ticket to review.
 
 ## What This Does
 
-1. Get unreviewed chunks sorted by RISC:
+1. Get unreviewed chunks for the current ticket, sorted by RISC:
    ```bash
    mta-context.sh list-chunks <TICKET> --unreviewed
    ```
-   If no ticket specified:
-   ```bash
-   mta-context.sh debt
-   ```
-   Then pick the context with highest debt.
 
 2. For each chunk (up to 5 per session), starting with highest RISC:
 

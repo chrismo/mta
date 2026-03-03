@@ -66,7 +66,7 @@ Wind down coordinated work across Claude sessions.
 
    ### Cognitive Debt
    - PROJ-1641: 5 unreviewed | weighted: 28 | 3 high-RISC (grew +2 today)
-   - Consider `/mtm:quiz` or `/mtm:premortem` for high-RISC items
+   - Consider `/mta:quiz` or `/mta:premortem` for high-RISC items
 
    ### Coordinated Work
    - PROJ-1641: [status summary] | Tomorrow: [next steps]
