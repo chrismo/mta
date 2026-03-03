@@ -25,7 +25,7 @@ Full overview of all coordinated work - use this to plan your day.
 
 3. Get full status for each context:
    ```bash
-   mta-context.sh status
+   mta-context.sh status <ticket>
    ```
 
 4. List all sessions to see which worktrees are linked:
