@@ -26,12 +26,17 @@ If ticket is omitted:
    mta-context.sh status <TICKET>
    ```
 
-2. Check git status on relevant files:
+2. Check cognitive debt:
+   ```bash
+   mta-context.sh debt <TICKET>
+   ```
+
+3. Check git status on relevant files:
    ```bash
    git log --oneline -5 -- <relevant-paths>
    ```
 
-3. Summarize what you need to know before continuing work
+4. Summarize what you need to know before continuing work
 
 ## Output Format
 
@@ -57,6 +62,9 @@ If ticket is omitted:
 
 ### Blockers
 - None (or list any unresolved)
+
+### Cognitive Debt
+- 3 unreviewed | weighted: 15 | 2 high-RISC
 
 ### Recent Commits
 - abc1234 asg-scaler: add queue metrics support
@@ -90,4 +98,10 @@ mta-context.sh list-blockers --unresolved
 
 # Active sessions
 mta-context.sh list-sessions <TICKET>
+
+# Cognitive debt
+mta-context.sh debt <TICKET>
+
+# Unreviewed chunks
+mta-context.sh list-chunks <TICKET> --unreviewed
 ```
