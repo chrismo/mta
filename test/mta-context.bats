@@ -1113,6 +1113,164 @@ MDEOF
 }
 
 # ==============================================================================
+# Update Chunk
+# ==============================================================================
+
+@test "update-chunk fails without required args" {
+  run mta update-chunk
+  assert_failure
+
+  run mta update-chunk PROJ-1641
+  assert_failure
+}
+
+@test "update-chunk fails without any update flag" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta update-chunk PROJ-1641 "retry logic"
+  assert_failure
+}
+
+@test "update-chunk updates risc score" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta update-chunk PROJ-1641 "retry logic" --risc=3
+  assert_success
+  assert_file_contains "chunks.sup" "risc:3"
+  assert_file_not_contains "chunks.sup" "risc:8"
+}
+
+@test "update-chunk updates summary" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta update-chunk PROJ-1641 "retry logic" --summary="retry backoff logic"
+  assert_success
+  assert_file_contains "chunks.sup" "summary:\"retry backoff logic\""
+  assert_file_not_contains "chunks.sup" "summary:\"retry logic\""
+}
+
+@test "update-chunk updates files, lines, risc-reason" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8 \
+    --files="old.sh" --lines="old.sh:1-10" --risc-reason="old reason"
+
+  run mta update-chunk PROJ-1641 "retry logic" \
+    --files="new.sh" --lines="new.sh:5-20" --risc-reason="new reason"
+  assert_success
+  assert_file_contains "chunks.sup" "files:\"new.sh\""
+  assert_file_contains "chunks.sup" "lines:\"new.sh:5-20\""
+  assert_file_contains "chunks.sup" "risc_reason:\"new reason\""
+}
+
+@test "update-chunk rejects invalid risc" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta update-chunk PROJ-1641 "retry logic" --risc=0
+  assert_failure
+
+  run mta update-chunk PROJ-1641 "retry logic" --risc=11
+  assert_failure
+
+  run mta update-chunk PROJ-1641 "retry logic" --risc=abc
+  assert_failure
+}
+
+@test "update-chunk fails for nonexistent chunk" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta update-chunk PROJ-1641 "nonexistent" --risc=5
+  assert_failure
+}
+
+@test "update-chunk only updates first match" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "config plumbing" 5
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing v2" 3
+
+  mta update-chunk PROJ-1641 "config plumbing" --risc=1
+
+  # First match updated to risc:1, second still risc:3
+  assert_file_contains "chunks.sup" "risc:1"
+  assert_file_contains "chunks.sup" "risc:3"
+}
+
+@test "update-chunk preserves unmodified fields" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8 \
+    --files="src/sync.sh" --risc-reason="complex retry"
+
+  run mta update-chunk PROJ-1641 "retry logic" --risc=3
+  assert_success
+  # risc changed
+  assert_file_contains "chunks.sup" "risc:3"
+  # other fields preserved
+  assert_file_contains "chunks.sup" "summary:\"retry logic\""
+  assert_file_contains "chunks.sup" "files:\"src/sync.sh\""
+  assert_file_contains "chunks.sup" "risc_reason:\"complex retry\""
+  assert_file_contains "chunks.sup" "commit:\"a3f7e2b\""
+}
+
+# ==============================================================================
+# Delete Chunk
+# ==============================================================================
+
+@test "delete-chunk fails without required args" {
+  run mta delete-chunk
+  assert_failure
+
+  run mta delete-chunk PROJ-1641
+  assert_failure
+}
+
+@test "delete-chunk deletes chunk by pattern" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+
+  run mta delete-chunk PROJ-1641 "retry logic"
+  assert_success
+  assert_file_not_contains "chunks.sup" "retry logic"
+  assert_file_contains "chunks.sup" "config plumbing"
+}
+
+@test "delete-chunk fails for nonexistent chunk" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta delete-chunk PROJ-1641 "nonexistent"
+  assert_failure
+}
+
+@test "delete-chunk only deletes first match" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "config plumbing" 5
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing v2" 3
+
+  mta delete-chunk PROJ-1641 "config plumbing"
+
+  # First match deleted, second still present
+  assert_file_contains "chunks.sup" "config plumbing"
+  # Only one line should remain with "config plumbing"
+  local count
+  count=$(grep -c "config plumbing" "$TEST_CONTEXTS_DIR/chunks.sup")
+  [[ "$count" == "1" ]]
+}
+
+@test "delete-chunk record no longer in file" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "only chunk" 5
+
+  mta delete-chunk PROJ-1641 "only chunk"
+
+  assert_file_not_contains "chunks.sup" "only chunk"
+}
+
+# ==============================================================================
 # Debt
 # ==============================================================================
 

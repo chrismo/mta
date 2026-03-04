@@ -1290,6 +1290,124 @@ cmd_review_chunk() {
   echo "Chunk reviewed."
 }
 
+cmd_update_chunk() {
+  local ticket="${1:-}"
+  local pattern="${2:-}"
+
+  if [[ -z "$ticket" || -z "$pattern" ]]; then
+    echo "Usage: mta-context.sh update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...]" >&2
+    exit 1
+  fi
+
+  shift 2
+
+  # Parse update flags
+  local new_risc="" new_summary="" new_files="" new_lines="" new_risc_reason=""
+  local has_update=false
+  for arg in "$@"; do
+    case "$arg" in
+      --risc=*) new_risc="${arg#*=}"; has_update=true ;;
+      --summary=*) new_summary="${arg#*=}"; has_update=true ;;
+      --files=*) new_files="${arg#*=}"; has_update=true ;;
+      --lines=*) new_lines="${arg#*=}"; has_update=true ;;
+      --risc-reason=*) new_risc_reason="${arg#*=}"; has_update=true ;;
+    esac
+  done
+
+  if [[ "$has_update" == "false" ]]; then
+    echo "Error: At least one update flag required (--risc, --summary, --files, --lines, --risc-reason)" >&2
+    exit 1
+  fi
+
+  if [[ -n "$new_risc" ]]; then
+    if ! [[ "$new_risc" =~ ^[0-9]+$ ]] || (( new_risc < 1 || new_risc > 10 )); then
+      echo "Error: risc must be an integer between 1 and 10" >&2
+      exit 1
+    fi
+  fi
+
+  ensure_dir
+
+  local chunks_file="$CONTEXTS_DIR/chunks.sup"
+  if [[ ! -f "$chunks_file" ]]; then
+    echo "Error: No chunks found" >&2
+    exit 1
+  fi
+
+  local temp_file
+  temp_file=$(mktemp)
+  local found=false
+
+  while IFS= read -r line; do
+    if [[ "$line" == *"ticket:\"$ticket\""* && "$line" == *"$pattern"* && "$found" == "false" ]]; then
+      local new_line="$line"
+      # Build dynamic put command from provided flags only
+      local put_args=""
+      [[ -n "$new_risc" ]] && put_args="$put_args risc:=$new_risc,"
+      [[ -n "$new_summary" ]] && put_args="$put_args summary:=\"$(escape_sup_text "$new_summary")\","
+      [[ -n "$new_files" ]] && put_args="$put_args files:=\"$(escape_sup_text "$new_files")\","
+      [[ -n "$new_lines" ]] && put_args="$put_args lines:=\"$(escape_sup_text "$new_lines")\","
+      [[ -n "$new_risc_reason" ]] && put_args="$put_args risc_reason:=\"$(escape_sup_text "$new_risc_reason")\","
+      # Remove trailing comma
+      put_args="${put_args%,}"
+      new_line=$(echo "$line" | super -s -c "put $put_args" -)
+      echo "$new_line" >> "$temp_file"
+      found=true
+    else
+      echo "$line" >> "$temp_file"
+    fi
+  done < "$chunks_file"
+
+  if [[ "$found" == "false" ]]; then
+    rm "$temp_file"
+    echo "Error: Chunk not found matching: $pattern" >&2
+    exit 1
+  fi
+
+  mv "$temp_file" "$chunks_file"
+  echo "Chunk updated."
+}
+
+cmd_delete_chunk() {
+  local ticket="${1:-}"
+  local pattern="${2:-}"
+
+  if [[ -z "$ticket" || -z "$pattern" ]]; then
+    echo "Usage: mta-context.sh delete-chunk <ticket> <summary-pattern>" >&2
+    exit 1
+  fi
+
+  ensure_dir
+
+  local chunks_file="$CONTEXTS_DIR/chunks.sup"
+  if [[ ! -f "$chunks_file" ]]; then
+    echo "Error: No chunks found" >&2
+    exit 1
+  fi
+
+  local temp_file
+  temp_file=$(mktemp)
+  local found=false
+
+  while IFS= read -r line; do
+    if [[ "$line" == *"ticket:\"$ticket\""* && "$line" == *"$pattern"* && "$found" == "false" ]]; then
+      # Skip this line (delete it)
+      found=true
+    else
+      echo "$line" >> "$temp_file"
+    fi
+  done < "$chunks_file"
+
+  if [[ "$found" == "false" ]]; then
+    rm "$temp_file"
+    echo "Error: Chunk not found matching: $pattern" >&2
+    exit 1
+  fi
+
+  mv "$temp_file" "$chunks_file"
+  echo "Chunk deleted."
+}
+
 _debt_for_ticket() {
   local ticket="$1"
   local chunks_file="$CONTEXTS_DIR/chunks.sup"
@@ -1372,6 +1490,8 @@ Chunks (Cognitive Debt):
   add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]
   list-chunks <ticket> [--unreviewed]
   review-chunk <ticket> <summary-pattern>
+  update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...]
+  delete-chunk <ticket> <summary-pattern>
   debt [ticket]                      Show cognitive debt (unreviewed chunks)
 
 Status & Archive:
@@ -1414,6 +1534,8 @@ main() {
     add-chunk) cmd_add_chunk "$@" ;;
     list-chunks) cmd_list_chunks "$@" ;;
     review-chunk) cmd_review_chunk "$@" ;;
+    update-chunk) cmd_update_chunk "$@" ;;
+    delete-chunk) cmd_delete_chunk "$@" ;;
     debt) cmd_debt "$@" ;;
     status) cmd_status "$@" ;;
     archive) cmd_archive "$@" ;;

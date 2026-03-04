@@ -83,6 +83,18 @@ assert_file_contains() {
   }
 }
 
+# Helper: assert file does not contain pattern
+assert_file_not_contains() {
+  local file="$1"
+  local pattern="$2"
+  ! grep -q "$pattern" "$TEST_CONTEXTS_DIR/$file" || {
+    echo "Expected $file to NOT contain: $pattern"
+    echo "Actual contents:"
+    cat "$TEST_CONTEXTS_DIR/$file"
+    return 1
+  }
+}
+
 # Helper: get current ISO timestamp (for comparisons)
 now_iso() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"

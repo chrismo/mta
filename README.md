@@ -100,6 +100,8 @@ Track what the human has and hasn't reviewed. Each commit is broken into RISC-gr
 mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]
 mta-context.sh list-chunks <ticket> [--unreviewed]
 mta-context.sh review-chunk <ticket> <summary-pattern>
+mta-context.sh update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...]
+mta-context.sh delete-chunk <ticket> <summary-pattern>
 mta-context.sh debt [ticket]    # Show cognitive debt summary
 ```
 
