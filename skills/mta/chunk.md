@@ -94,6 +94,7 @@ Do NOT give up quickly. Follow this discovery chain:
       ```
       Note: The positional `<risc>` is ignored in component mode (pass `1` as placeholder).
       Combined risc is auto-computed as `min(R+I+S+C, 10)`.
+      Branch is auto-detected from git — no need to pass `--branch` in most cases.
 
 5. After creating all chunks, run `/mta:overview` to show the updated debt picture.
 

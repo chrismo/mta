@@ -35,7 +35,7 @@ Do NOT give up quickly. Follow this discovery chain:
 
 1. Get unreviewed chunks sorted by RISC descending:
    ```bash
-   mta-context.sh list-chunks <TICKET> --unreviewed
+   mta-context.sh list-chunks <TICKET> --unreviewed --branch=$(git branch --show-current)
    ```
 
 2. For each chunk (no cap — the human controls pace with "stop"):

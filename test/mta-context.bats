@@ -1462,6 +1462,107 @@ MDEOF
 }
 
 # ==============================================================================
+# Branch field on chunks
+# ==============================================================================
+
+@test "add-chunk stores branch when --branch passed" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  run mta add-chunk PROJ-1641 a3f7e2b "branch test chunk" 3 --branch=feature/foo
+  assert_success
+  assert_file_contains "chunks.sup" 'branch:"feature/foo"'
+}
+
+@test "add-chunk auto-detects branch from git" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  # Create a git repo and branch in a temp dir
+  local git_dir
+  git_dir="$(mktemp -d)"
+  git -C "$git_dir" init -b main >/dev/null 2>&1
+  git -C "$git_dir" commit --allow-empty -m "init" >/dev/null 2>&1
+  git -C "$git_dir" checkout -b feature/auto-detect >/dev/null 2>&1
+
+  # Run add-chunk from inside the git repo (no --branch flag)
+  (cd "$git_dir" && mta add-chunk PROJ-1641 a3f7e2b "auto branch chunk" 3)
+  assert_file_contains "chunks.sup" 'branch:"feature/auto-detect"'
+
+  rm -rf "$git_dir"
+}
+
+@test "add-chunk without git or --branch omits branch" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  # Run from a non-git temp dir
+  local nogit_dir
+  nogit_dir="$(mktemp -d)"
+  (cd "$nogit_dir" && mta add-chunk PROJ-1641 a3f7e2b "no branch chunk" 3)
+  assert_file_not_contains "chunks.sup" "branch:"
+
+  rm -rf "$nogit_dir"
+}
+
+@test "list-chunks --branch filters by branch" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "chunk on main" 3 --branch=main
+  mta add-chunk PROJ-1641 b8c1d4e "chunk on feature" 5 --branch=feature/foo
+
+  run mta list-chunks PROJ-1641 --branch=main
+  assert_success
+  [[ "$output" == *"chunk on main"* ]]
+  [[ "$output" != *"chunk on feature"* ]]
+}
+
+@test "list-chunks without --branch returns all" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "chunk on main" 3 --branch=main
+  mta add-chunk PROJ-1641 b8c1d4e "chunk on feature" 5 --branch=feature/foo
+
+  run mta list-chunks PROJ-1641
+  assert_success
+  [[ "$output" == *"chunk on main"* ]]
+  [[ "$output" == *"chunk on feature"* ]]
+}
+
+@test "update-chunk --branch updates branch field" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "branch update chunk" 3 --branch=old-branch
+
+  run mta update-chunk PROJ-1641 "branch update chunk" --branch=new-branch
+  assert_success
+  assert_file_contains "chunks.sup" 'branch:"new-branch"'
+  assert_file_not_contains "chunks.sup" 'branch:"old-branch"'
+}
+
+@test "debt --branch filters by branch" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "main chunk" 8 --branch=main
+  mta add-chunk PROJ-1641 b8c1d4e "feature chunk" 2 --branch=feature/foo
+
+  run mta debt PROJ-1641 --branch=main
+  assert_success
+  # Should show 1 unreviewed with weighted 8 (only main chunk)
+  [[ "$output" == *"1 unreviewed"* ]]
+  [[ "$output" == *"weighted: 8"* ]]
+}
+
+@test "debt without --branch shows all" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "main chunk" 8 --branch=main
+  mta add-chunk PROJ-1641 b8c1d4e "feature chunk" 2 --branch=feature/foo
+
+  run mta debt PROJ-1641
+  assert_success
+  # Should show 2 unreviewed with weighted 10 (both chunks)
+  [[ "$output" == *"2 unreviewed"* ]]
+  [[ "$output" == *"weighted: 10"* ]]
+}
+
+# ==============================================================================
 # Assertion Helpers (bats-assert compatibility)
 # ==============================================================================
 

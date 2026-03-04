@@ -1193,19 +1193,25 @@ cmd_add_chunk() {
   shift 4
 
   # Parse optional flags
-  local files="" risc_reason="" lines=""
+  local files="" risc_reason="" lines="" branch=""
   local comp_reach="" comp_irrev="" comp_subtle="" comp_conseq=""
   for arg in "$@"; do
     case "$arg" in
       --files=*) files="${arg#*=}" ;;
       --risc-reason=*) risc_reason="${arg#*=}" ;;
       --lines=*) lines="${arg#*=}" ;;
+      --branch=*) branch="${arg#*=}" ;;
       --reach=*) comp_reach="${arg#*=}" ;;
       --irrev=*) comp_irrev="${arg#*=}" ;;
       --subtle=*) comp_subtle="${arg#*=}" ;;
       --conseq=*) comp_conseq="${arg#*=}" ;;
     esac
   done
+
+  # Auto-detect branch from git if not provided
+  if [[ -z "$branch" ]]; then
+    branch=$(git branch --show-current 2>/dev/null || true)
+  fi
 
   # Component mode: if any component flag given, require all four
   local has_components=false
@@ -1236,6 +1242,7 @@ cmd_add_chunk() {
   [[ -n "$files" ]] && record="$record,files:\"$(escape_sup_text "$files")\""
   [[ -n "$lines" ]] && record="$record,lines:\"$(escape_sup_text "$lines")\""
   [[ -n "$risc_reason" ]] && record="$record,risc_reason:\"$(escape_sup_text "$risc_reason")\""
+  [[ -n "$branch" ]] && record="$record,branch:\"$(escape_sup_text "$branch")\""
   if [[ "$has_components" == "true" ]]; then
     record="$record,reach:$comp_reach,irrev:$comp_irrev,subtle:$comp_subtle,conseq:$comp_conseq"
   fi
@@ -1246,18 +1253,19 @@ cmd_add_chunk() {
 }
 
 cmd_list_chunks() {
-  local ticket="" unreviewed_only=false
+  local ticket="" unreviewed_only=false branch=""
 
   for arg in "$@"; do
     case "$arg" in
       --unreviewed) unreviewed_only=true ;;
+      --branch=*) branch="${arg#*=}" ;;
       --*) ;;
       *) [[ -z "$ticket" ]] && ticket="$arg" ;;
     esac
   done
 
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh list-chunks <ticket> [--unreviewed]" >&2
+    echo "Usage: mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...]" >&2
     exit 1
   fi
 
@@ -1270,6 +1278,7 @@ cmd_list_chunks() {
   require_super
 
   local query="from '$CONTEXTS_DIR/chunks.sup' | where ticket = '$ticket'"
+  [[ -n "$branch" ]] && query="$query | where branch = '$branch'"
   [[ "$unreviewed_only" == "true" ]] && query="$query | where reviewed_at is null"
   query="$query | sort ts desc"
 
@@ -1325,14 +1334,14 @@ cmd_update_chunk() {
   local pattern="${2:-}"
 
   if [[ -z "$ticket" || -z "$pattern" ]]; then
-    echo "Usage: mta-context.sh update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...]" >&2
+    echo "Usage: mta-context.sh update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]" >&2
     exit 1
   fi
 
   shift 2
 
   # Parse update flags
-  local new_risc="" new_summary="" new_files="" new_lines="" new_risc_reason=""
+  local new_risc="" new_summary="" new_files="" new_lines="" new_risc_reason="" new_branch=""
   local comp_reach="" comp_irrev="" comp_subtle="" comp_conseq=""
   local has_update=false has_comp_update=false
   for arg in "$@"; do
@@ -1342,6 +1351,7 @@ cmd_update_chunk() {
       --files=*) new_files="${arg#*=}"; has_update=true ;;
       --lines=*) new_lines="${arg#*=}"; has_update=true ;;
       --risc-reason=*) new_risc_reason="${arg#*=}"; has_update=true ;;
+      --branch=*) new_branch="${arg#*=}"; has_update=true ;;
       --reach=*) comp_reach="${arg#*=}"; has_update=true; has_comp_update=true ;;
       --irrev=*) comp_irrev="${arg#*=}"; has_update=true; has_comp_update=true ;;
       --subtle=*) comp_subtle="${arg#*=}"; has_update=true; has_comp_update=true ;;
@@ -1412,6 +1422,7 @@ cmd_update_chunk() {
       [[ -n "$new_files" ]] && put_args="$put_args files:=\"$(escape_sup_text "$new_files")\","
       [[ -n "$new_lines" ]] && put_args="$put_args lines:=\"$(escape_sup_text "$new_lines")\","
       [[ -n "$new_risc_reason" ]] && put_args="$put_args risc_reason:=\"$(escape_sup_text "$new_risc_reason")\","
+      [[ -n "$new_branch" ]] && put_args="$put_args branch:=\"$(escape_sup_text "$new_branch")\","
 
       # Handle component updates: read current values, merge, recompute
       if [[ "$has_comp_update" == "true" ]]; then
@@ -1491,12 +1502,16 @@ cmd_delete_chunk() {
 
 _debt_for_ticket() {
   local ticket="$1"
+  local branch="${2:-}"
   local chunks_file="$CONTEXTS_DIR/chunks.sup"
 
+  local branch_filter=""
+  [[ -n "$branch" ]] && branch_filter=" and branch = '$branch'"
+
   local unreviewed_count weighted high_risc_count
-  unreviewed_count=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket' and reviewed_at is null | count()" 2>/dev/null || echo "0")
-  weighted=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket' and reviewed_at is null | sum(risc)" 2>/dev/null || echo "0")
-  high_risc_count=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket' and reviewed_at is null and risc >= 7 | count()" 2>/dev/null || echo "0")
+  unreviewed_count=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket'$branch_filter and reviewed_at is null | count()" 2>/dev/null || echo "0")
+  weighted=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket'$branch_filter and reviewed_at is null | sum(risc)" 2>/dev/null || echo "0")
+  high_risc_count=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket'$branch_filter and reviewed_at is null and risc >= 7 | count()" 2>/dev/null || echo "0")
 
   # Handle null/empty from super
   [[ -z "$unreviewed_count" || "$unreviewed_count" == "null" ]] && unreviewed_count=0
@@ -1507,7 +1522,15 @@ _debt_for_ticket() {
 }
 
 cmd_debt() {
-  local ticket="${1:-}"
+  local ticket="" branch=""
+
+  for arg in "$@"; do
+    case "$arg" in
+      --branch=*) branch="${arg#*=}" ;;
+      --*) ;;
+      *) [[ -z "$ticket" ]] && ticket="$arg" ;;
+    esac
+  done
 
   ensure_dir
   require_super
@@ -1518,7 +1541,7 @@ cmd_debt() {
   fi
 
   if [[ -n "$ticket" ]]; then
-    _debt_for_ticket "$ticket"
+    _debt_for_ticket "$ticket" "$branch"
   else
     # Show debt for all active contexts
     if [[ ! -f "$CONTEXTS_DIR/contexts.sup" ]]; then
@@ -1531,7 +1554,7 @@ cmd_debt() {
 
     while IFS= read -r t; do
       [[ -z "$t" ]] && continue
-      _debt_for_ticket "$t"
+      _debt_for_ticket "$t" "$branch"
     done <<< "$tickets"
   fi
 }
@@ -1568,15 +1591,16 @@ Blockers:
   list-blockers [--unresolved]
 
 Chunks (Cognitive Debt):
-  add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]
+  add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
             Component mode: add --reach=N --irrev=N --subtle=N --conseq=N (all four required)
             Combined risc is auto-computed as min(sum, 10); positional <risc> is ignored
-  list-chunks <ticket> [--unreviewed]
+            Branch is auto-detected from git if --branch not provided
+  list-chunks <ticket> [--unreviewed] [--branch=...]
   review-chunk <ticket> <summary-pattern>
-  update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...]
+  update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
             Component update: [--reach=N] [--irrev=N] [--subtle=N] [--conseq=N] (recomputes risc)
   delete-chunk <ticket> <summary-pattern>
-  debt [ticket]                      Show cognitive debt (unreviewed chunks)
+  debt [ticket] [--branch=...]       Show cognitive debt (unreviewed chunks)
 
 Status & Archive:
   status [ticket]

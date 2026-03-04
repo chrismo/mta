@@ -38,14 +38,14 @@ Do NOT give up quickly. Follow this discovery chain:
    mta-context.sh status <TICKET>
    ```
 
-2. Get debt summary:
+2. Get debt summary (scoped to current branch):
    ```bash
-   mta-context.sh debt <TICKET>
+   mta-context.sh debt <TICKET> --branch=$(git branch --show-current)
    ```
 
-3. Get unreviewed chunks:
+3. Get unreviewed chunks (scoped to current branch):
    ```bash
-   mta-context.sh list-chunks <TICKET> --unreviewed
+   mta-context.sh list-chunks <TICKET> --unreviewed --branch=$(git branch --show-current)
    ```
 
 4. Quick gap check — compare branch commits against chunk coverage:

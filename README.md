@@ -98,21 +98,23 @@ Track what the human has and hasn't reviewed. Each commit is broken into RISC-gr
 
 ```bash
 # Legacy mode (combined score):
-mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]
+mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
 
 # Component mode (per-category scores, risc auto-computed as min(sum, 10)):
 mta-context.sh add-chunk <ticket> <commit> <summary> 1 \
-  --reach=N --irrev=N --subtle=N --conseq=N [--files=...] [--lines=...] [--risc-reason=...]
+  --reach=N --irrev=N --subtle=N --conseq=N [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
 
-mta-context.sh list-chunks <ticket> [--unreviewed]
+# Branch is auto-detected from git if --branch not provided
+
+mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...]
 mta-context.sh review-chunk <ticket> <summary-pattern>
 
 # update-chunk supports both --risc=N (legacy) and component flags:
-mta-context.sh update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...]
+mta-context.sh update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
 mta-context.sh update-chunk <ticket> <summary-pattern> [--reach=N] [--irrev=N] [--subtle=N] [--conseq=N] [--summary=...]
 
 mta-context.sh delete-chunk <ticket> <summary-pattern>
-mta-context.sh debt [ticket]    # Show cognitive debt summary
+mta-context.sh debt [ticket] [--branch=...]    # Show cognitive debt summary
 ```
 
 RISC (1-10) = **R**each, **I**rreversibility, **S**ubtlety, **C**onsequence. Higher = needs more human attention.
