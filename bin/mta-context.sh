@@ -1194,13 +1194,40 @@ cmd_add_chunk() {
 
   # Parse optional flags
   local files="" risc_reason="" lines=""
+  local comp_reach="" comp_irrev="" comp_subtle="" comp_conseq=""
   for arg in "$@"; do
     case "$arg" in
       --files=*) files="${arg#*=}" ;;
       --risc-reason=*) risc_reason="${arg#*=}" ;;
       --lines=*) lines="${arg#*=}" ;;
+      --reach=*) comp_reach="${arg#*=}" ;;
+      --irrev=*) comp_irrev="${arg#*=}" ;;
+      --subtle=*) comp_subtle="${arg#*=}" ;;
+      --conseq=*) comp_conseq="${arg#*=}" ;;
     esac
   done
+
+  # Component mode: if any component flag given, require all four
+  local has_components=false
+  if [[ -n "$comp_reach" || -n "$comp_irrev" || -n "$comp_subtle" || -n "$comp_conseq" ]]; then
+    if [[ -z "$comp_reach" || -z "$comp_irrev" || -z "$comp_subtle" || -z "$comp_conseq" ]]; then
+      echo "Error: All four component flags required (--reach, --irrev, --subtle, --conseq)" >&2
+      exit 1
+    fi
+    # Validate each component 1-10
+    for comp_name in reach irrev subtle conseq; do
+      local comp_val
+      eval "comp_val=\$comp_$comp_name"
+      if ! [[ "$comp_val" =~ ^[0-9]+$ ]] || (( comp_val < 1 || comp_val > 10 )); then
+        echo "Error: $comp_name must be an integer between 1 and 10" >&2
+        exit 1
+      fi
+    done
+    # Compute combined risc = min(sum, 10)
+    local sum=$(( comp_reach + comp_irrev + comp_subtle + comp_conseq ))
+    risc=$(( sum > 10 ? 10 : sum ))
+    has_components=true
+  fi
 
   ensure_dir
 
@@ -1209,6 +1236,9 @@ cmd_add_chunk() {
   [[ -n "$files" ]] && record="$record,files:\"$(escape_sup_text "$files")\""
   [[ -n "$lines" ]] && record="$record,lines:\"$(escape_sup_text "$lines")\""
   [[ -n "$risc_reason" ]] && record="$record,risc_reason:\"$(escape_sup_text "$risc_reason")\""
+  if [[ "$has_components" == "true" ]]; then
+    record="$record,reach:$comp_reach,irrev:$comp_irrev,subtle:$comp_subtle,conseq:$comp_conseq"
+  fi
   record="$record}"
 
   append_record "chunks.sup" "$record"
@@ -1303,7 +1333,8 @@ cmd_update_chunk() {
 
   # Parse update flags
   local new_risc="" new_summary="" new_files="" new_lines="" new_risc_reason=""
-  local has_update=false
+  local comp_reach="" comp_irrev="" comp_subtle="" comp_conseq=""
+  local has_update=false has_comp_update=false
   for arg in "$@"; do
     case "$arg" in
       --risc=*) new_risc="${arg#*=}"; has_update=true ;;
@@ -1311,12 +1342,30 @@ cmd_update_chunk() {
       --files=*) new_files="${arg#*=}"; has_update=true ;;
       --lines=*) new_lines="${arg#*=}"; has_update=true ;;
       --risc-reason=*) new_risc_reason="${arg#*=}"; has_update=true ;;
+      --reach=*) comp_reach="${arg#*=}"; has_update=true; has_comp_update=true ;;
+      --irrev=*) comp_irrev="${arg#*=}"; has_update=true; has_comp_update=true ;;
+      --subtle=*) comp_subtle="${arg#*=}"; has_update=true; has_comp_update=true ;;
+      --conseq=*) comp_conseq="${arg#*=}"; has_update=true; has_comp_update=true ;;
     esac
   done
 
   if [[ "$has_update" == "false" ]]; then
     echo "Error: At least one update flag required (--risc, --summary, --files, --lines, --risc-reason)" >&2
     exit 1
+  fi
+
+  # Validate component values if provided
+  if [[ "$has_comp_update" == "true" ]]; then
+    for comp_name in reach irrev subtle conseq; do
+      local comp_val
+      eval "comp_val=\$comp_$comp_name"
+      if [[ -n "$comp_val" ]]; then
+        if ! [[ "$comp_val" =~ ^[0-9]+$ ]] || (( comp_val < 1 || comp_val > 10 )); then
+          echo "Error: $comp_name must be an integer between 1 and 10" >&2
+          exit 1
+        fi
+      fi
+    done
   fi
 
   if [[ -n "$new_risc" ]]; then
@@ -1341,6 +1390,21 @@ cmd_update_chunk() {
   while IFS= read -r line; do
     if [[ "$line" == *"ticket:\"$ticket\""* && "$line" == *"$pattern"* && "$found" == "false" ]]; then
       local new_line="$line"
+      local is_component_chunk=false
+      [[ "$line" == *"reach:"* ]] && is_component_chunk=true
+
+      # Check for conflicting update modes
+      if [[ "$has_comp_update" == "true" && "$is_component_chunk" == "false" ]]; then
+        rm "$temp_file"
+        echo "Error: Cannot update components on legacy chunk" >&2
+        exit 1
+      fi
+      if [[ -n "$new_risc" && "$is_component_chunk" == "true" ]]; then
+        rm "$temp_file"
+        echo "Error: Use component flags instead (--reach, --irrev, --subtle, --conseq)" >&2
+        exit 1
+      fi
+
       # Build dynamic put command from provided flags only
       local put_args=""
       [[ -n "$new_risc" ]] && put_args="$put_args risc:=$new_risc,"
@@ -1348,6 +1412,23 @@ cmd_update_chunk() {
       [[ -n "$new_files" ]] && put_args="$put_args files:=\"$(escape_sup_text "$new_files")\","
       [[ -n "$new_lines" ]] && put_args="$put_args lines:=\"$(escape_sup_text "$new_lines")\","
       [[ -n "$new_risc_reason" ]] && put_args="$put_args risc_reason:=\"$(escape_sup_text "$new_risc_reason")\","
+
+      # Handle component updates: read current values, merge, recompute
+      if [[ "$has_comp_update" == "true" ]]; then
+        local cur_reach cur_irrev cur_subtle cur_conseq
+        cur_reach=$(echo "$line" | super -j -c "cut reach" - | sed 's/.*"reach":\([0-9]*\).*/\1/')
+        cur_irrev=$(echo "$line" | super -j -c "cut irrev" - | sed 's/.*"irrev":\([0-9]*\).*/\1/')
+        cur_subtle=$(echo "$line" | super -j -c "cut subtle" - | sed 's/.*"subtle":\([0-9]*\).*/\1/')
+        cur_conseq=$(echo "$line" | super -j -c "cut conseq" - | sed 's/.*"conseq":\([0-9]*\).*/\1/')
+        [[ -n "$comp_reach" ]] && cur_reach="$comp_reach"
+        [[ -n "$comp_irrev" ]] && cur_irrev="$comp_irrev"
+        [[ -n "$comp_subtle" ]] && cur_subtle="$comp_subtle"
+        [[ -n "$comp_conseq" ]] && cur_conseq="$comp_conseq"
+        local sum=$(( cur_reach + cur_irrev + cur_subtle + cur_conseq ))
+        local computed_risc=$(( sum > 10 ? 10 : sum ))
+        put_args="$put_args reach:=$cur_reach, irrev:=$cur_irrev, subtle:=$cur_subtle, conseq:=$cur_conseq, risc:=$computed_risc,"
+      fi
+
       # Remove trailing comma
       put_args="${put_args%,}"
       new_line=$(echo "$line" | super -s -c "put $put_args" -)
@@ -1488,9 +1569,12 @@ Blockers:
 
 Chunks (Cognitive Debt):
   add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]
+            Component mode: add --reach=N --irrev=N --subtle=N --conseq=N (all four required)
+            Combined risc is auto-computed as min(sum, 10); positional <risc> is ignored
   list-chunks <ticket> [--unreviewed]
   review-chunk <ticket> <summary-pattern>
   update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...]
+            Component update: [--reach=N] [--irrev=N] [--subtle=N] [--conseq=N] (recomputes risc)
   delete-chunk <ticket> <summary-pattern>
   debt [ticket]                      Show cognitive debt (unreviewed chunks)
 

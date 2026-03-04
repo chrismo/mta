@@ -62,27 +62,38 @@ Do NOT give up quickly. Follow this discovery chain:
       - One file can have **many chunks** (complex file with distinct concerns)
       - There is no 1:1 assumption between chunks, commits, or files
 
-   c. Grade each chunk with a RISC score (1-10):
+   c. Grade each chunk using RISC component scores (each 1-10):
+      - **Reach** (R): How much code does this touch? 1=single function, 10=entire system
+      - **Irreversibility** (I): How hard to undo? 1=trivial revert, 10=data migration
+      - **Subtlety** (S): How easy to misunderstand? 1=obvious, 10=hidden gotcha
+      - **Consequence** (C): What breaks if wrong? 1=cosmetic, 10=data loss/security
+      - Combined `risc = min(R + I + S + C, 10)`
+
+      Guidelines by combined score:
       - **1-3 Low**: Config, test scaffolding, formatting, comments
       - **4-6 Medium**: New functions, refactors with clear boundaries, dependency updates
       - **7-10 High**: Cross-cutting changes, state management, auth/security, error handling that changes failure modes, anything subtle
-      - RISC = **R**each (how much code does this touch?), **I**rreversibility (how hard to undo?), **S**ubtlety (how easy to misunderstand?), **C**onsequence (what breaks if wrong?)
 
-   d. Create via CLI:
+   d. Create via CLI (component mode — preferred):
       ```bash
       # Small scattered change — one chunk, multiple files
-      mta-context.sh add-chunk <TICKET> "<commit-sha>" "<summary>" <risc> \
+      mta-context.sh add-chunk <TICKET> "<commit-sha>" "<summary>" 1 \
+        --reach=1 --irrev=1 --subtle=1 --conseq=1 \
         --files="config-a.sh,config-b.sh" --risc-reason="<why this score>"
 
       # Big file, multiple chunks with line ranges
-      mta-context.sh add-chunk <TICKET> "<commit-sha>" "<summary>" <risc> \
+      mta-context.sh add-chunk <TICKET> "<commit-sha>" "<summary>" 1 \
+        --reach=2 --irrev=3 --subtle=2 --conseq=1 \
         --files="big-file.sh" --lines="big-file.sh:42-58" --risc-reason="..."
 
       # Cross-commit logical change
-      mta-context.sh add-chunk <TICKET> "<sha1>,<sha2>" "<summary>" <risc> \
+      mta-context.sh add-chunk <TICKET> "<sha1>,<sha2>" "<summary>" 1 \
+        --reach=3 --irrev=2 --subtle=3 --conseq=2 \
         --files="file-a.sh,file-b.sh" \
         --lines="file-a.sh:120-135,file-b.sh:1-40" --risc-reason="..."
       ```
+      Note: The positional `<risc>` is ignored in component mode (pass `1` as placeholder).
+      Combined risc is auto-computed as `min(R+I+S+C, 10)`.
 
 5. After creating all chunks, run `/mta:review` to show the updated debt picture.
 

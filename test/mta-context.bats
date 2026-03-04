@@ -1349,6 +1349,119 @@ MDEOF
 }
 
 # ==============================================================================
+# RISC Component Scoring
+# ==============================================================================
+
+@test "add-chunk with component flags stores all four components and computed risc" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  run mta add-chunk PROJ-1641 a3f7e2b "component chunk" 1 \
+    --reach=2 --irrev=3 --subtle=1 --conseq=2
+  assert_success
+  assert_file_contains "chunks.sup" "reach:2"
+  assert_file_contains "chunks.sup" "irrev:3"
+  assert_file_contains "chunks.sup" "subtle:1"
+  assert_file_contains "chunks.sup" "conseq:2"
+  assert_file_contains "chunks.sup" "risc:8"
+}
+
+@test "add-chunk component mode caps combined risc at 10" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  run mta add-chunk PROJ-1641 a3f7e2b "high risk chunk" 1 \
+    --reach=4 --irrev=4 --subtle=4 --conseq=4
+  assert_success
+  assert_file_contains "chunks.sup" "risc:10"
+  # Should NOT contain risc:16
+  ! grep -q "risc:16" "$MTA_CONTEXTS_DIR/chunks.sup"
+}
+
+@test "add-chunk component mode boundary: all 1s gives risc 4" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  run mta add-chunk PROJ-1641 a3f7e2b "low risk chunk" 1 \
+    --reach=1 --irrev=1 --subtle=1 --conseq=1
+  assert_success
+  assert_file_contains "chunks.sup" "risc:4"
+}
+
+@test "add-chunk component mode boundary: 3+3+3+3 caps at 10" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  run mta add-chunk PROJ-1641 a3f7e2b "boundary chunk" 1 \
+    --reach=3 --irrev=3 --subtle=3 --conseq=3
+  assert_success
+  assert_file_contains "chunks.sup" "risc:10"
+}
+
+@test "add-chunk rejects component outside 1-10" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  run mta add-chunk PROJ-1641 a3f7e2b "bad component" 1 \
+    --reach=0 --irrev=3 --subtle=1 --conseq=2
+  assert_failure
+  [[ "$output" == *"must be an integer between 1 and 10"* ]]
+}
+
+@test "add-chunk rejects partial components" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  run mta add-chunk PROJ-1641 a3f7e2b "partial components" 1 \
+    --reach=2 --irrev=3
+  assert_failure
+  [[ "$output" == *"All four component flags required"* ]]
+}
+
+@test "add-chunk legacy positional risc still works" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  run mta add-chunk PROJ-1641 a3f7e2b "legacy chunk" 5
+  assert_success
+  assert_file_contains "chunks.sup" "risc:5"
+  # Should NOT contain component fields
+  ! grep -q "reach:" "$MTA_CONTEXTS_DIR/chunks.sup"
+  ! grep -q "irrev:" "$MTA_CONTEXTS_DIR/chunks.sup"
+}
+
+@test "add-chunk component and legacy chunks coexist in same file" {
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "legacy chunk" 5
+  mta add-chunk PROJ-1641 b8c1d4e "component chunk" 1 \
+    --reach=2 --irrev=3 --subtle=1 --conseq=2
+  # Both should be present
+  assert_file_contains "chunks.sup" "summary:\"legacy chunk\""
+  assert_file_contains "chunks.sup" "summary:\"component chunk\""
+  assert_file_contains "chunks.sup" "reach:2"
+}
+
+@test "update-chunk updates single component and recomputes risc" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "component chunk" 1 \
+    --reach=2 --irrev=3 --subtle=1 --conseq=2
+  # Original risc = 8, update reach to 1 → risc = min(1+3+1+2,10) = 7
+  run mta update-chunk PROJ-1641 "component chunk" --reach=1
+  assert_success
+  local content
+  content=$(cat "$MTA_CONTEXTS_DIR/chunks.sup")
+  [[ "$content" == *"reach:1"* ]]
+  [[ "$content" == *"irrev:3"* ]]
+  [[ "$content" == *"risc:7"* ]]
+}
+
+@test "update-chunk errors when updating components on legacy chunk" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "legacy chunk" 5
+  run mta update-chunk PROJ-1641 "legacy chunk" --reach=2
+  assert_failure
+  [[ "$output" == *"Cannot update components on legacy chunk"* ]]
+}
+
+@test "update-chunk errors when using --risc on component chunk" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "component chunk" 1 \
+    --reach=2 --irrev=3 --subtle=1 --conseq=2
+  run mta update-chunk PROJ-1641 "component chunk" --risc=5
+  assert_failure
+  [[ "$output" == *"Use component flags instead"* ]]
+}
+
+# ==============================================================================
 # Assertion Helpers (bats-assert compatibility)
 # ==============================================================================
 
