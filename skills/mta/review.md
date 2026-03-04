@@ -1,12 +1,12 @@
 ---
 name: mta:review
-description: Fast read-only triage of cognitive debt and chunk coverage
+description: Chunk-by-chunk code review walkthrough
 allowed-tools: Bash
 ---
 
-# Cognitive Debt Review
+# Code Review Walkthrough
 
-Quick triage: show cognitive debt status, flag gaps, suggest next actions.
+Walk through unreviewed chunks one at a time, showing actual diffs for human review.
 
 ## Usage
 
@@ -31,77 +31,112 @@ Do NOT give up quickly. Follow this discovery chain:
 4. **If context found**: Proceed — treat it as if you joined.
 5. **If no context found**: Ask the user which ticket to review.
 
-## What This Does (ALL READ-ONLY)
+## What This Does
 
-1. Get debt summary:
-   ```bash
-   mta-context.sh debt <TICKET>
-   ```
-
-2. Get unreviewed chunks:
+1. Get unreviewed chunks sorted by RISC descending:
    ```bash
    mta-context.sh list-chunks <TICKET> --unreviewed
    ```
 
-3. Quick gap check — compare branch commits against chunk coverage:
+2. For each chunk (no cap — the human controls pace with "stop"):
+
+   a. Show chunk header:
+      ```
+      ### Chunk 1: "retry backoff logic" (RISC: 8)
+      Commit: a3f7e2b
+      Files: src/sync.sh, src/async.sh
+      RISC reason: cross-cutting, timing-sensitive
+      ```
+
+   b. Show the diff:
+      ```bash
+      git show <commit> -- <files>
+      ```
+      If files not recorded, show the full commit diff:
+      ```bash
+      git show <commit>
+      ```
+      For multi-commit chunks (comma-separated SHAs), show each commit's diff.
+
+   c. **Sub-chunk display**: if the diff is longer than ~60 lines, split at
+      `@@` hunk boundaries and show one section at a time:
+      ```
+      Section 1/3:
+      [hunk diff]
+
+      Type "next" for next section, "show all" to see remaining at once.
+      ```
+
+   d. Wait for human input:
+      - **"good"** / **"lgtm"** → mark reviewed
+      - **"discuss"** → talk about the chunk, then decide whether to mark reviewed
+      - **"skip"** → move to next chunk without marking
+      - **"stop"** → end the review session
+
+   e. Mark reviewed when appropriate:
+      ```bash
+      mta-context.sh review-chunk <TICKET> "<summary>"
+      ```
+
+3. After the walkthrough (or on "stop"), show updated debt:
    ```bash
-   git log main..HEAD --oneline
+   mta-context.sh debt <TICKET>
    ```
-   Fall back to `master` if `main` doesn't exist.
-
-   Count commits whose SHAs don't appear in any chunk's commit field
-   (remember chunks can have comma-separated SHAs).
-
-4. Present triage report (see Output Format below).
-
-5. Suggest next actions based on findings:
-   - **Untracked commits exist** → suggest `/mta:chunk`
-   - **High-RISC unreviewed chunks** → suggest `/mta:quiz` or `/mta:premortem`
-   - **Low debt / all reviewed** → "You're in good shape"
-
-Does NOT create, modify, or mark chunks. Pure triage.
 
 ## Output Format
 
 ```
-## Review: PROJ-1641
+## Code Review: PROJ-1641
 
-### Debt Summary
-Unreviewed: 4 chunks | Weighted score: 22 | High-RISC (≥7): 2
+4 unreviewed chunks (sorted by RISC)
 
-### Top Unreviewed (by RISC)
-1. "retry backoff logic" RISC:8 — src/sync.sh, src/async.sh
-2. "auth token refresh" RISC:9 — src/auth.sh
+---
 
-### Coverage Gaps
-3 commits not tracked by any chunk (out of 12 total)
+### Chunk 1: "auth token refresh" (RISC: 9)
+Commit: b4c5d6e
+Files: src/auth.sh
+RISC reason: security-critical, handles token expiry
 
-### Suggested Actions
-- Run `/mta:chunk` to create chunks for 3 untracked commits
-- Run `/mta:premortem` to review 2 high-RISC chunks
-```
+[diff output]
 
-If there are no chunks at all and no commits on the branch:
-```
-## Review: PROJ-1641
+good / discuss / skip / stop?
 
-No commits on branch, no chunks recorded. Nothing to review.
-```
+> good
 
-If everything is tracked and reviewed:
-```
-## Review: PROJ-1641
+Marked as reviewed.
 
-All 12 commits tracked across 5 chunks. All chunks reviewed.
-You're in good shape.
+---
+
+### Chunk 2: "retry backoff logic" (RISC: 8)
+Commit: a3f7e2b
+Files: src/sync.sh, src/async.sh (Section 1/3)
+RISC reason: cross-cutting, timing-sensitive
+
+[first hunk]
+
+next / show all / good / discuss / skip / stop?
+
+> show all
+
+[remaining hunks]
+
+good / discuss / skip / stop?
+
+> good
+
+Marked as reviewed.
+
+---
+
+## Session Summary
+Reviewed: 2/4 chunks
+Remaining debt: 2 unreviewed | weighted: 8 | 0 high-RISC
 ```
 
 ## Notes
 
-- This should be fast — no diff reading, no AI analysis, just data queries
-- Keep the output scannable — the human should grok the state in 10 seconds
-- This is called automatically at the end of `/mta:update`
-- **Gap check limitation**: The current gap check is commit-level only — it checks
-  whether a commit SHA appears in any chunk. A chunk can claim a commit but only
-  cover part of its diff. A future `mta-context.sh chunk-gaps` command will do
-  line-level coverage checking (see TODO in `/mta:chunk` notes).
+- Don't quiz, don't analyze risks — just show the code and let the human decide
+- If a commit is not in local git history, show the chunk's summary and RISC reason,
+  then offer to mark reviewed based on that info alone
+- Keep the flow simple: show code, get verdict, move on
+- The human can always say "discuss" to pause and talk about something they see

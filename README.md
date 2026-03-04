@@ -175,6 +175,11 @@ If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/ski
 - `/mta:update` - Record decisions and tasks
 - `/mta:leave` - Deregister from context
 - `/mta:dupe` - Spawn a duplicate worker on the same ticket
+- `/mta:chunk` - Sync recorded chunks with branch state
+- `/mta:review` - Chunk-by-chunk code review walkthrough
+- `/mta:overview` - Quick cognitive debt triage
+- `/mta:quiz` - Interactive comprehension check on high-RISC chunks
+- `/mta:premortem` - Proactive risk briefing on unreviewed high-RISC code
 
 ### MTM (Manager Skills)
 - `/mtm:update` - Quick mid-day status check
@@ -183,8 +188,6 @@ If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/ski
 - `/mtm:new-context` - Create a new shared context
 - `/mtm:archive` - Archive a completed context
 - `/mtm:slot` - Generate a claude-slot command for a ticket
-- `/mta:quiz` - Interactive comprehension check on high-RISC chunks
-- `/mta:premortem` - Proactive risk briefing on unreviewed high-RISC code
 
 ## Running Tests
 

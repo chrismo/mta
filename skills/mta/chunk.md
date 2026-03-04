@@ -95,7 +95,7 @@ Do NOT give up quickly. Follow this discovery chain:
       Note: The positional `<risc>` is ignored in component mode (pass `1` as placeholder).
       Combined risc is auto-computed as `min(R+I+S+C, 10)`.
 
-5. After creating all chunks, run `/mta:review` to show the updated debt picture.
+5. After creating all chunks, run `/mta:overview` to show the updated debt picture.
 
 ## Output Format
 
@@ -146,7 +146,7 @@ Approach — two layers:
 
 Trade-off: a pure refactor after reviewed chunks will show as "uncovered" and
 require re-chunking. But re-chunked mechanical refactors get low RISC scores,
-so `/mta:review` surfaces them as low priority. The cost is in the re-chunking
+so `/mta:overview` surfaces them as low priority. The cost is in the re-chunking
 step, not the human's review time.
 
 ## Notes

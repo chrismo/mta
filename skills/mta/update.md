@@ -67,7 +67,7 @@ if you genuinely can't determine which ticket this session is working on.
 
 7. Prompt: Should I commit and push? (if there are uncommitted changes)
 
-8. Run `/mta:review` to show the current cognitive debt picture.
+8. Run `/mta:overview` to show the current cognitive debt picture.
 
 ## Decision Extraction
 
@@ -99,7 +99,7 @@ Uncommitted changes:
 
 Commit and push? [y/n]
 
-[then /mta:review output follows]
+[then /mta:overview output follows]
 ```
 
 If no outstanding tasks exist, omit the "Tasks" section.
