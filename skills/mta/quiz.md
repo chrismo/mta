@@ -57,13 +57,32 @@ Do NOT give up quickly. Follow this discovery chain:
       git show <commit>
       ```
 
-   c. Ask a specific comprehension question about the change. Examples:
-      - "What happens if the API returns a 429 during the retry window?"
-      - "This function modifies shared state in two places. What are they?"
-      - "What's the failure mode if `bc` isn't installed?"
+   c. **Ground the question in tests** before asking:
+
+      1. Search for tests that exercise the behavior you're about to ask about:
+         ```bash
+         grep -r "<function_or_behavior>" test/
+         ```
+      2. If you find a relevant passing test: cite it. Your confidence in the
+         answer comes from the test, not from reading the implementation alone.
+      3. If no test covers this behavior: **STOP. Do not frame this as a quiz
+         question.** Instead, break out of quiz mode and flag it as a discovered gap:
+
+         > "I noticed [X] while reviewing this chunk. There's no test covering
+         > this behavior, so I'm not confident in my understanding. Let's
+         > review it together."
+
+         Discuss the gap collaboratively. After resolving it (or deciding it's
+         a non-issue), resume the quiz.
+
+      Well-grounded question examples:
+      - "In `batch_update_games()`, when both scores are 0, the winner is left
+        empty. The test `update_game with both scores 0 leaves winner empty`
+        verifies this. Does the batch version preserve that behavior, and how?"
+      - "What determines the backoff interval between retries? (See test
+        `retry uses exponential backoff` in sync.bats)"
 
       Questions should be specific to the code, NOT generic. Bad: "What is retry logic?"
-      Good: "What determines the backoff interval between retries?"
 
    d. Evaluate the answer:
       - The goal is understanding, not perfection
@@ -123,3 +142,4 @@ Remaining debt: 4 unreviewed | weighted: 18 | 2 high-RISC
 - Keep questions focused on the "what could go wrong" aspect, not trivia
 - One question per chunk is usually enough — this shouldn't feel like an exam
 - If the commit is no longer in the local git history, note that and ask the human to review the summary/reason instead
+- **Never disguise a discovered gap as a comprehension question.** If you find something uncertain while reading the code, say so directly — the human needs to know whether they're being tested on something verified or consulted about something unknown
