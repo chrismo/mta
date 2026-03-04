@@ -48,21 +48,28 @@ Do NOT give up quickly. Follow this discovery chain:
       RISC reason: cross-cutting, timing-sensitive
       ```
 
-   b. Show the diff:
-      ```bash
-      git show <commit> -- <files>
-      ```
-      If files not recorded, show the full commit diff:
-      ```bash
-      git show <commit>
-      ```
-      For multi-commit chunks (comma-separated SHAs), show each commit's diff.
+   b. Show the diff — **IMPORTANT: render as markdown, not inside a tool call**:
+      - Capture the diff into a variable:
+        ```bash
+        diff_output=$(git show <commit> -- <files>)
+        ```
+        If files not recorded, show the full commit diff:
+        ```bash
+        diff_output=$(git show <commit>)
+        ```
+        For multi-commit chunks (comma-separated SHAs), capture each commit's diff.
+      - Then output the diff as markdown text using ````diff` fenced blocks — one
+        per file. Do NOT display git show output directly in a tool result (it
+        collapses and the human can't see it). Parse the captured output and
+        re-render it yourself as text.
 
    c. **Sub-chunk display**: if the diff is longer than ~60 lines, split at
       `@@` hunk boundaries and show one section at a time:
       ```
       Section 1/3:
+      ```diff
       [hunk diff]
+      ```
 
       Type "next" for next section, "show all" to see remaining at once.
       ```
@@ -97,7 +104,12 @@ Commit: b4c5d6e
 Files: src/auth.sh
 RISC reason: security-critical, handles token expiry
 
-[diff output]
+```diff
+--- a/src/auth.sh
++++ b/src/auth.sh
+@@ -42,6 +42,10 @@
+ ...actual diff lines...
+```
 
 good / discuss / skip / stop?
 
@@ -112,13 +124,17 @@ Commit: a3f7e2b
 Files: src/sync.sh, src/async.sh (Section 1/3)
 RISC reason: cross-cutting, timing-sensitive
 
+```diff
 [first hunk]
+```
 
 next / show all / good / discuss / skip / stop?
 
 > show all
 
+```diff
 [remaining hunks]
+```
 
 good / discuss / skip / stop?
 
