@@ -133,6 +133,19 @@ require_super() {
   fi
 }
 
+# Format output from super -j pipeline
+# Usage: super -j -c "$query" | format_output "$format"
+format_output() {
+  local fmt="${1:-table}"
+  case "$fmt" in
+    json) cat ;;
+    csv) super -f csv - ;;
+    commits) super -j -c 'cut commit' - | sed 's/.*"\(.*\)".*/\1/' | tr ',' '\n' ;;
+    table|"") grdy ;;
+    *) echo "Error: Unknown format '$fmt'. Use: json, csv, commits, table" >&2; exit 1 ;;
+  esac
+}
+
 # Detect session ID from Claude Code conversation files.
 # Finds the most recently modified .jsonl in the project's conversation dir.
 detect_session_id() {
@@ -196,13 +209,20 @@ cmd_create_context() {
 }
 
 cmd_list_contexts() {
+  local format=""
+  for arg in "$@"; do
+    case "$arg" in
+      --format=*) format="${arg#*=}" ;;
+    esac
+  done
+
   ensure_dir
   if [[ ! -f "$CONTEXTS_DIR/contexts.sup" ]]; then
     echo "No contexts found."
     return 0
   fi
   require_super
-  super -j -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc | cut ticket, title" | grdy
+  super -j -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc | cut ticket, title" | format_output "$format"
 }
 
 cmd_get_context() {
@@ -333,7 +353,14 @@ cmd_leave() {
 }
 
 cmd_list_sessions() {
-  local ticket="${1:-}"
+  local ticket="" format=""
+  for arg in "$@"; do
+    case "$arg" in
+      --format=*) format="${arg#*=}" ;;
+      --*) ;;
+      *) [[ -z "$ticket" ]] && ticket="$arg" ;;
+    esac
+  done
 
   ensure_dir
   if [[ ! -f "$CONTEXTS_DIR/sessions.sup" ]]; then
@@ -344,9 +371,9 @@ cmd_list_sessions() {
   require_super
 
   if [[ -n "$ticket" ]]; then
-    super -j -c "from '$CONTEXTS_DIR/sessions.sup' | where ticket = '$ticket' | sort joined_at desc" | grdy
+    super -j -c "from '$CONTEXTS_DIR/sessions.sup' | where ticket = '$ticket' | sort joined_at desc" | format_output "$format"
   else
-    super -j -c "from '$CONTEXTS_DIR/sessions.sup' | sort joined_at desc" | grdy
+    super -j -c "from '$CONTEXTS_DIR/sessions.sup' | sort joined_at desc" | format_output "$format"
   fi
 }
 
@@ -367,10 +394,17 @@ cmd_add_decision() {
 }
 
 cmd_list_decisions() {
-  local ticket="${1:-}"
+  local ticket="" format=""
+  for arg in "$@"; do
+    case "$arg" in
+      --format=*) format="${arg#*=}" ;;
+      --*) ;;
+      *) [[ -z "$ticket" ]] && ticket="$arg" ;;
+    esac
+  done
 
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh list-decisions <ticket>" >&2
+    echo "Usage: mta-context.sh list-decisions <ticket> [--format=json|csv|table]" >&2
     exit 1
   fi
 
@@ -381,7 +415,7 @@ cmd_list_decisions() {
   fi
 
   require_super
-  super -j -c "from '$CONTEXTS_DIR/decisions.sup' | where ticket = '$ticket' | sort ts desc" | grdy
+  super -j -c "from '$CONTEXTS_DIR/decisions.sup' | where ticket = '$ticket' | sort ts desc" | format_output "$format"
 }
 
 cmd_add_task() {
@@ -443,13 +477,14 @@ cmd_complete_task() {
 }
 
 cmd_list_tasks() {
-  local ticket="${1:-}"
-  local pending_only=false
+  local ticket="" pending_only=false format=""
 
   # Parse args
   for arg in "$@"; do
     case "$arg" in
       --pending) pending_only=true ;;
+      --format=*) format="${arg#*=}" ;;
+      --*) ;;
       *) ticket="$arg" ;;
     esac
   done
@@ -467,7 +502,7 @@ cmd_list_tasks() {
   [[ "$pending_only" == "true" ]] && query="$query | where status = 'pending'"
   query="$query | sort ts desc"
 
-  super -j -c "$query" | grdy
+  super -j -c "$query" | format_output "$format"
 }
 
 cmd_add_blocker() {
@@ -531,11 +566,12 @@ cmd_resolve_blocker() {
 }
 
 cmd_list_blockers() {
-  local unresolved_only=false
+  local unresolved_only=false format=""
 
   for arg in "$@"; do
     case "$arg" in
       --unresolved) unresolved_only=true ;;
+      --format=*) format="${arg#*=}" ;;
     esac
   done
 
@@ -551,7 +587,7 @@ cmd_list_blockers() {
   [[ "$unresolved_only" == "true" ]] && query="$query | where resolved is null"
   query="$query | sort ts desc"
 
-  super -j -c "$query" | grdy
+  super -j -c "$query" | format_output "$format"
 }
 
 cmd_status() {
@@ -1253,19 +1289,20 @@ cmd_add_chunk() {
 }
 
 cmd_list_chunks() {
-  local ticket="" unreviewed_only=false branch=""
+  local ticket="" unreviewed_only=false branch="" format=""
 
   for arg in "$@"; do
     case "$arg" in
       --unreviewed) unreviewed_only=true ;;
       --branch=*) branch="${arg#*=}" ;;
+      --format=*) format="${arg#*=}" ;;
       --*) ;;
       *) [[ -z "$ticket" ]] && ticket="$arg" ;;
     esac
   done
 
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...]" >&2
+    echo "Usage: mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]" >&2
     exit 1
   fi
 
@@ -1282,7 +1319,7 @@ cmd_list_chunks() {
   [[ "$unreviewed_only" == "true" ]] && query="$query | where reviewed_at is null"
   query="$query | sort ts desc"
 
-  super -j -c "$query" | grdy
+  super -j -c "$query" | format_output "$format"
 }
 
 cmd_review_chunk() {
@@ -1567,35 +1604,35 @@ Usage: mta-context.sh <command> [args]
 
 Context Management:
   create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
-  list-contexts
+  list-contexts [--format=json|csv|table]
   get-context <ticket>
 
 Session Management:
   session-id                          Auto-detect session identifier
   join <ticket> [session-id]          Session ID auto-detected if omitted
   leave <ticket> <session-id> <status> [note]
-  list-sessions [ticket]
+  list-sessions [ticket] [--format=json|csv|table]
 
 Decisions:
   add-decision <ticket> <text>
-  list-decisions <ticket>
+  list-decisions <ticket> [--format=json|csv|table]
 
 Tasks:
   add-task <ticket> <text>
   complete-task <ticket> <task-text-pattern>
-  list-tasks [ticket] [--pending]
+  list-tasks [ticket] [--pending] [--format=json|csv|table]
 
 Blockers:
   add-blocker <ticket> <text>
   resolve-blocker <ticket> <blocker-text-pattern>
-  list-blockers [--unresolved]
+  list-blockers [--unresolved] [--format=json|csv|table]
 
 Chunks (Cognitive Debt):
   add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
             Component mode: add --reach=N --irrev=N --subtle=N --conseq=N (all four required)
             Combined risc is auto-computed as min(sum, 10); positional <risc> is ignored
             Branch is auto-detected from git if --branch not provided
-  list-chunks <ticket> [--unreviewed] [--branch=...]
+  list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]
   review-chunk <ticket> <summary-pattern>
   update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
             Component update: [--reach=N] [--irrev=N] [--subtle=N] [--conseq=N] (recomputes risc)

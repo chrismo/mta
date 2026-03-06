@@ -1581,3 +1581,111 @@ assert_failure() {
     return 1
   fi
 }
+
+# ==============================================================================
+# --format flag on list commands
+# ==============================================================================
+
+@test "list-chunks --format=json outputs valid JSON" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta list-chunks PROJ-1641 --format=json
+  assert_success
+  # Should contain JSON object markers
+  [[ "$output" == *"{"* ]]
+  [[ "$output" == *"retry logic"* ]]
+  # Should NOT contain box-drawing characters (table output)
+  [[ "$output" != *"─"* ]]
+  [[ "$output" != *"│"* ]]
+}
+
+@test "list-chunks --format=csv outputs CSV" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta list-chunks PROJ-1641 --format=csv
+  assert_success
+  # Should have header row with field names
+  [[ "$output" == *"ticket"* ]]
+  [[ "$output" == *"retry logic"* ]]
+  # Should NOT contain box-drawing characters
+  [[ "$output" != *"─"* ]]
+  [[ "$output" != *"│"* ]]
+}
+
+@test "list-chunks --format=commits outputs one SHA per line" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+  mta add-chunk PROJ-1641 b8c1d4e "config plumbing" 2
+
+  run mta list-chunks PROJ-1641 --format=commits
+  assert_success
+  [[ "$output" == *"a3f7e2b"* ]]
+  [[ "$output" == *"b8c1d4e"* ]]
+  # Should be just SHAs, no table or JSON markers
+  [[ "$output" != *"{"* ]]
+  [[ "$output" != *"─"* ]]
+}
+
+@test "list-chunks --format=commits splits multi-commit SHAs" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 "abc1234,def5678" "cross-commit change" 5
+
+  run mta list-chunks PROJ-1641 --format=commits
+  assert_success
+  # Each SHA should be on its own line
+  local line_count
+  line_count=$(echo "$output" | grep -c .)
+  [[ "$line_count" -eq 2 ]]
+  [[ "$output" == *"abc1234"* ]]
+  [[ "$output" == *"def5678"* ]]
+}
+
+@test "list-chunks default format outputs table" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta list-chunks PROJ-1641
+  assert_success
+  # Should contain box-drawing characters (grdy table)
+  [[ "$output" == *"─"* ]] || [[ "$output" == *"│"* ]] || [[ "$output" == *"|"* ]]
+}
+
+@test "list-chunks --format=invalid errors" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-chunk PROJ-1641 a3f7e2b "retry logic" 8
+
+  run mta list-chunks PROJ-1641 --format=invalid
+  assert_failure
+  [[ "$output" == *"Unknown format"* ]]
+}
+
+@test "list-contexts --format=json outputs JSON" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta list-contexts --format=json
+  assert_success
+  [[ "$output" == *"{"* ]]
+  [[ "$output" == *"PROJ-1641"* ]]
+  [[ "$output" != *"─"* ]]
+}
+
+@test "list-tasks --format=json outputs JSON" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta add-task PROJ-1641 "Write tests"
+
+  run mta list-tasks PROJ-1641 --format=json
+  assert_success
+  [[ "$output" == *"{"* ]]
+  [[ "$output" == *"Write tests"* ]]
+  [[ "$output" != *"─"* ]]
+}

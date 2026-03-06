@@ -64,7 +64,7 @@ cp mta/bin/mta-context.sh ~/.local/bin/
 
 ```bash
 mta-context.sh create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
-mta-context.sh list-contexts
+mta-context.sh list-contexts [--format=json|csv|table]
 mta-context.sh get-context <ticket>
 mta-context.sh archive <ticket>
 ```
@@ -74,22 +74,22 @@ mta-context.sh archive <ticket>
 ```bash
 mta-context.sh join <ticket> <session-id>
 mta-context.sh leave <ticket> <session-id> <status> [note]
-mta-context.sh list-sessions [ticket]
+mta-context.sh list-sessions [ticket] [--format=json|csv|table]
 ```
 
 ### Decisions, Tasks, Blockers
 
 ```bash
 mta-context.sh add-decision <ticket> <text>
-mta-context.sh list-decisions <ticket>
+mta-context.sh list-decisions <ticket> [--format=json|csv|table]
 
 mta-context.sh add-task <ticket> <text>
 mta-context.sh complete-task <ticket> <pattern>
-mta-context.sh list-tasks [ticket] [--pending]
+mta-context.sh list-tasks [ticket] [--pending] [--format=json|csv|table]
 
 mta-context.sh add-blocker <ticket> <text>
 mta-context.sh resolve-blocker <ticket> <pattern>
-mta-context.sh list-blockers [--unresolved]
+mta-context.sh list-blockers [--unresolved] [--format=json|csv|table]
 ```
 
 ### Chunks (Cognitive Debt)
@@ -106,7 +106,7 @@ mta-context.sh add-chunk <ticket> <commit> <summary> 1 \
 
 # Branch is auto-detected from git if --branch not provided
 
-mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...]
+mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]
 mta-context.sh review-chunk <ticket> <summary-pattern>
 
 # update-chunk supports both --risc=N (legacy) and component flags:

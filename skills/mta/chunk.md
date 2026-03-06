@@ -39,14 +39,13 @@ Do NOT give up quickly. Follow this discovery chain:
    ```
    Fall back to `master` if `main` doesn't exist.
 
-2. Get existing chunks:
+2. Get existing chunk commit SHAs:
    ```bash
-   mta-context.sh list-chunks <TICKET>
+   mta-context.sh list-chunks <TICKET> --format=commits
    ```
+   This outputs one SHA per line (comma-separated SHAs are auto-split).
 
-3. Compare: find commits not covered by any chunk's commit field.
-   Chunks can have comma-separated SHAs (e.g. `sha1,sha2`) — split on commas
-   when checking coverage.
+3. Compare: find commits from step 1 not present in the output from step 2.
 
 4. For each untracked commit:
 
