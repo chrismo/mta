@@ -1678,6 +1678,138 @@ assert_failure() {
   [[ "$output" != *"─"* ]]
 }
 
+# ==============================================================================
+# Chunk Diff
+# ==============================================================================
+
+# Helper: create a git repo with a commit, returns the repo dir and commit SHA
+# Sets CHUNK_DIFF_REPO and CHUNK_DIFF_SHA variables
+setup_git_repo_with_commit() {
+  CHUNK_DIFF_REPO="$(mktemp -d)"
+  (
+    cd "$CHUNK_DIFF_REPO"
+    git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
+    git config commit.gpgsign false
+    echo "original" > file1.sh
+    echo "other" > file2.sh
+    git add .
+    git commit -q -m "initial"
+    echo "modified" > file1.sh
+    echo "also modified" > file2.sh
+    git add .
+    git commit -q -m "change both files"
+  )
+  CHUNK_DIFF_SHA=$(cd "$CHUNK_DIFF_REPO" && git rev-parse HEAD)
+}
+
+cleanup_git_repo() {
+  [[ -n "${CHUNK_DIFF_REPO:-}" && -d "${CHUNK_DIFF_REPO:-}" ]] && rm -rf "$CHUNK_DIFF_REPO"
+}
+
+@test "chunk-diff fails without required args" {
+  run mta chunk-diff
+  assert_failure
+
+  run mta chunk-diff PROJ-1641
+  assert_failure
+}
+
+@test "chunk-diff fails when no chunks file exists" {
+  run mta chunk-diff PROJ-1641 "nonexistent"
+  assert_failure
+}
+
+@test "chunk-diff fails for nonexistent chunk" {
+  # Write a chunk record directly (no super needed)
+  echo '{ticket:"PROJ-1641",commit:"a3f7e2b",summary:"retry logic",risc:8,ts:"2025-01-01T00:00:00Z",reviewed_at:null}' \
+    > "$TEST_CONTEXTS_DIR/chunks.sup"
+  run mta chunk-diff PROJ-1641 "nonexistent"
+  assert_failure
+}
+
+@test "chunk-diff shows full commit diff when no files recorded" {
+  setup_git_repo_with_commit
+  echo "{ticket:\"PROJ-1641\",commit:\"$CHUNK_DIFF_SHA\",summary:\"change both files\",risc:5,ts:\"2025-01-01T00:00:00Z\",reviewed_at:null}" \
+    > "$TEST_CONTEXTS_DIR/chunks.sup"
+
+  run bash -c "cd '$CHUNK_DIFF_REPO' && MTA_CONTEXTS_DIR='$MTA_CONTEXTS_DIR' '$MTA_CONTEXT' chunk-diff PROJ-1641 'change both files'"
+  assert_success
+  [[ "$output" == *"file1.sh"* ]]
+  [[ "$output" == *"file2.sh"* ]]
+  [[ "$output" == *"modified"* ]]
+  cleanup_git_repo
+}
+
+@test "chunk-diff scopes to recorded files" {
+  setup_git_repo_with_commit
+  echo "{ticket:\"PROJ-1641\",commit:\"$CHUNK_DIFF_SHA\",summary:\"file1 only\",risc:3,ts:\"2025-01-01T00:00:00Z\",reviewed_at:null,files:\"file1.sh\"}" \
+    > "$TEST_CONTEXTS_DIR/chunks.sup"
+
+  run bash -c "cd '$CHUNK_DIFF_REPO' && MTA_CONTEXTS_DIR='$MTA_CONTEXTS_DIR' '$MTA_CONTEXT' chunk-diff PROJ-1641 'file1 only'"
+  assert_success
+  [[ "$output" == *"file1.sh"* ]]
+  [[ "$output" != *"file2.sh"* ]]
+  cleanup_git_repo
+}
+
+@test "chunk-diff handles multi-commit chunks" {
+  CHUNK_DIFF_REPO="$(mktemp -d)"
+  (
+    cd "$CHUNK_DIFF_REPO"
+    git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
+    git config commit.gpgsign false
+    echo "v0" > a.sh
+    git add . && git commit -q -m "init"
+    echo "v1" > a.sh
+    git add . && git commit -q -m "first change"
+    echo "v2" > a.sh
+    git add . && git commit -q -m "second change"
+  )
+  local sha1 sha2
+  sha1=$(cd "$CHUNK_DIFF_REPO" && git rev-parse HEAD~1)
+  sha2=$(cd "$CHUNK_DIFF_REPO" && git rev-parse HEAD)
+  echo "{ticket:\"PROJ-1641\",commit:\"$sha1,$sha2\",summary:\"two-commit change\",risc:6,ts:\"2025-01-01T00:00:00Z\",reviewed_at:null}" \
+    > "$TEST_CONTEXTS_DIR/chunks.sup"
+
+  run bash -c "cd '$CHUNK_DIFF_REPO' && MTA_CONTEXTS_DIR='$MTA_CONTEXTS_DIR' '$MTA_CONTEXT' chunk-diff PROJ-1641 'two-commit change'"
+  assert_success
+  # Should contain output from both commits
+  [[ "$output" == *"first change"* ]]
+  [[ "$output" == *"second change"* ]]
+  cleanup_git_repo
+}
+
+@test "chunk-diff scopes multi-commit chunk to files" {
+  CHUNK_DIFF_REPO="$(mktemp -d)"
+  (
+    cd "$CHUNK_DIFF_REPO"
+    git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
+    git config commit.gpgsign false
+    echo "v0" > a.sh
+    echo "v0" > b.sh
+    git add . && git commit -q -m "init"
+    echo "v1" > a.sh
+    echo "v1" > b.sh
+    git add . && git commit -q -m "change both"
+  )
+  local sha
+  sha=$(cd "$CHUNK_DIFF_REPO" && git rev-parse HEAD)
+  echo "{ticket:\"PROJ-1641\",commit:\"$sha\",summary:\"only a\",risc:3,ts:\"2025-01-01T00:00:00Z\",reviewed_at:null,files:\"a.sh\"}" \
+    > "$TEST_CONTEXTS_DIR/chunks.sup"
+
+  run bash -c "cd '$CHUNK_DIFF_REPO' && MTA_CONTEXTS_DIR='$MTA_CONTEXTS_DIR' '$MTA_CONTEXT' chunk-diff PROJ-1641 'only a'"
+  assert_success
+  [[ "$output" == *"a.sh"* ]]
+  [[ "$output" != *"b.sh"* ]]
+  cleanup_git_repo
+}
+
 @test "list-tasks --format=json outputs JSON" {
   require_super
   mta create-context PROJ-1641 "Upgrade auth service"
