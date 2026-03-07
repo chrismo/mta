@@ -1366,6 +1366,72 @@ cmd_review_chunk() {
   echo "Chunk reviewed."
 }
 
+cmd_chunk_diff() {
+  local ticket="${1:-}"
+  local pattern="${2:-}"
+
+  if [[ -z "$ticket" || -z "$pattern" ]]; then
+    echo "Usage: mta-context.sh chunk-diff <ticket> <summary-pattern>" >&2
+    exit 1
+  fi
+
+  ensure_dir
+
+  local chunks_file="$CONTEXTS_DIR/chunks.sup"
+  if [[ ! -f "$chunks_file" ]]; then
+    echo "Error: No chunks found" >&2
+    exit 1
+  fi
+
+  # Find the first matching chunk record
+  local match=""
+  while IFS= read -r line; do
+    if [[ "$line" == *"ticket:\"$ticket\""* && "$line" == *"$pattern"* ]]; then
+      match="$line"
+      break
+    fi
+  done < "$chunks_file"
+
+  if [[ -z "$match" ]]; then
+    echo "Error: Chunk not found matching: $pattern" >&2
+    exit 1
+  fi
+
+  # Extract commit field: commit:"value"
+  local commit=""
+  if [[ "$match" =~ commit:\"([^\"]+)\" ]]; then
+    commit="${BASH_REMATCH[1]}"
+  fi
+
+  if [[ -z "$commit" ]]; then
+    echo "Error: No commit found in chunk record" >&2
+    exit 1
+  fi
+
+  # Extract files field (optional): files:"value"
+  local files=""
+  if [[ "$match" =~ files:\"([^\"]+)\" ]]; then
+    files="${BASH_REMATCH[1]}"
+  fi
+
+  # Split commits on comma and show each
+  local IFS=','
+  read -ra commits <<< "$commit"
+  unset IFS
+
+  for sha in "${commits[@]}"; do
+    if [[ -n "$files" ]]; then
+      # Split files on comma and pass as args
+      local IFS=','
+      read -ra file_list <<< "$files"
+      unset IFS
+      git show "$sha" -- "${file_list[@]}"
+    else
+      git show "$sha"
+    fi
+  done
+}
+
 cmd_update_chunk() {
   local ticket="${1:-}"
   local pattern="${2:-}"
@@ -1633,6 +1699,7 @@ Chunks (Cognitive Debt):
             Combined risc is auto-computed as min(sum, 10); positional <risc> is ignored
             Branch is auto-detected from git if --branch not provided
   list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]
+  chunk-diff <ticket> <summary-pattern>    Show git diff for a chunk's commit(s)
   review-chunk <ticket> <summary-pattern>
   update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
             Component update: [--reach=N] [--irrev=N] [--subtle=N] [--conseq=N] (recomputes risc)
@@ -1678,6 +1745,7 @@ main() {
     list-blockers) cmd_list_blockers "$@" ;;
     add-chunk) cmd_add_chunk "$@" ;;
     list-chunks) cmd_list_chunks "$@" ;;
+    chunk-diff) cmd_chunk_diff "$@" ;;
     review-chunk) cmd_review_chunk "$@" ;;
     update-chunk) cmd_update_chunk "$@" ;;
     delete-chunk) cmd_delete_chunk "$@" ;;

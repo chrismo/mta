@@ -49,15 +49,11 @@ Do NOT give up quickly. Follow this discovery chain:
       ```
 
    b. Show the diff — **IMPORTANT: render as markdown, not inside a tool call**:
-      - Capture the diff into a variable:
+      - Capture the diff using the helper command (handles multi-commit chunks,
+        file scoping, and all edge cases automatically):
         ```bash
-        diff_output=$(git show <commit> -- <files>)
+        diff_output=$(mta-context.sh chunk-diff <TICKET> "<summary>")
         ```
-        If files not recorded, show the full commit diff:
-        ```bash
-        diff_output=$(git show <commit>)
-        ```
-        For multi-commit chunks (comma-separated SHAs), capture each commit's diff.
       - Then output the diff as markdown text using ````diff` fenced blocks — one
         per file. Do NOT display git show output directly in a tool result (it
         collapses and the human can't see it). Parse the captured output and
