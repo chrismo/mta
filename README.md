@@ -107,6 +107,7 @@ mta-context.sh add-chunk <ticket> <commit> <summary> 1 \
 # Branch is auto-detected from git if --branch not provided
 
 mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]
+mta-context.sh chunk-diff <ticket> <summary-pattern>    # Show git diff for a chunk's commit(s)
 mta-context.sh review-chunk <ticket> <summary-pattern>
 
 # update-chunk supports both --risc=N (legacy) and component flags:
