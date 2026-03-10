@@ -1,4 +1,4 @@
-# MTA - Multi-Ticket Assistance
+# MTA - Multi-Tasking Agents
 
 Context management for coordinated multi-Claude work sessions using [SuperDB](https://superdb.org/).
 
