@@ -4,6 +4,8 @@
 
 Ticket-centric tooling for AI-assisted development: **multi-session coordination** and **cognitive debt tracking**. Built on [SuperDB](https://superdb.org/).
 
+**[Quickstart](quickstart.md)** — TL;DR with ASCII art showing how the pieces fit together.
+
 ## Two Problems, One Data Model
 
 ### Coordination: Multiple Claudes, one ticket
