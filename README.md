@@ -1,31 +1,41 @@
 # MTA - Multi-Tasking Agents
 
-Context management for coordinated multi-Claude work sessions using [SuperDB](https://superdb.org/).
+> **Warning:** You're entering a vibe-heavy zone. It's a mess. It works for *my* brain so far. If it works for yours, you might need meds.
 
-## Problem
+Ticket-centric tooling for AI-assisted development: **multi-session coordination** and **cognitive debt tracking**. Built on [SuperDB](https://superdb.org/).
 
-When multiple Claude sessions work on the same ticket, they need shared context:
-- What decisions were made?
-- Who's currently working on it?
-- What blockers exist?
-- What tasks remain?
+## Two Problems, One Data Model
 
-## Solution
+### Coordination: Multiple Claudes, one ticket
 
-Store coordination data in `.sup` files (SuperDB format) with a CLI for all operations:
+When multiple Claude sessions work on the same ticket, they need shared context — who's working on what, what decisions were made, what's blocked, what remains.
 
 ```bash
 mta-context.sh create-context PROJ-1641 "Upgrade auth service"
 mta-context.sh join PROJ-1641 ds5/session-abc
 mta-context.sh add-decision PROJ-1641 "Using bc for ceiling calc"
 mta-context.sh add-task PROJ-1641 "Add retry logic"
-mta-context.sh status PROJ-1641
 mta-context.sh leave PROJ-1641 ds5/session-abc done "implemented scaling"
 ```
 
+### Cognitive Debt: What has the human actually reviewed?
+
+AI agents produce code fast. The human can't review it all at once. Chunks break each commit into RISC-graded pieces so the human can triage what needs attention and track what they've reviewed.
+
+```bash
+mta-context.sh add-chunk PROJ-1641 abc123 "New retry logic" 7
+mta-context.sh list-chunks PROJ-1641 --unreviewed
+mta-context.sh debt PROJ-1641
+mta-context.sh review-chunk PROJ-1641 "retry"
+```
+
+### Why one repo?
+
+Both concerns are keyed by ticket and share the same SuperDB data store. Coordination tracks what the agents are doing; cognitive debt tracks what the human still needs to understand. Same ticket, two sides.
+
 ## Why SuperDB?
 
-- Relational model with multiple files (contexts, sessions, decisions, tasks, blockers)
+- Relational model with multiple files (contexts, sessions, decisions, tasks, blockers, chunks)
 - SQL-like queries for joins and aggregations
 - Appending records is just appending lines
 - Query across all tickets: "show me all unresolved blockers"
@@ -66,13 +76,13 @@ cp mta/bin/mta-context.sh ~/.local/bin/
 mta-context.sh create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
 mta-context.sh list-contexts [--format=json|csv|table]
 mta-context.sh get-context <ticket>
-mta-context.sh archive <ticket>
 ```
 
 ### Session Management
 
 ```bash
-mta-context.sh join <ticket> <session-id>
+mta-context.sh session-id                          # Auto-detect session identifier
+mta-context.sh join <ticket> [session-id]           # Session ID auto-detected if omitted
 mta-context.sh leave <ticket> <session-id> <status> [note]
 mta-context.sh list-sessions [ticket] [--format=json|csv|table]
 ```
@@ -121,10 +131,18 @@ mta-context.sh debt [ticket] [--branch=...]    # Show cognitive debt summary
 RISC (1-10) = **R**each, **I**rreversibility, **S**ubtlety, **C**onsequence. Higher = needs more human attention.
 Component mode stores individual scores and computes `risc = min(R + I + S + C, 10)`.
 
-### Status
+### Status & Archive
 
 ```bash
 mta-context.sh status [ticket]  # Full overview
+mta-context.sh archive <ticket>
+mta-context.sh unarchive <ticket>
+```
+
+### Migration
+
+```bash
+mta-context.sh import <context.md>  # Import old markdown context into SuperDB
 ```
 
 ## Data Storage
@@ -166,18 +184,19 @@ which mta-context.sh
 super --version
 ```
 
-### Transition from brain repo
-
-If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/skills/mta/` and `ai-agents/claude/skills/mtm/`), remove those skill sources to avoid conflicts. Independent skills like `plan` and `review` stay in the brain repo. The `yah` script has been moved here as `work-context`.
-
 ## Claude Code Skills
 
-### MTA (Worker Skills)
+### MTA — Worker Skills
+
+**Coordination:**
 - `/mta:join` - Join a shared context
 - `/mta:read` - Read current context state
 - `/mta:update` - Record decisions and tasks
 - `/mta:leave` - Deregister from context
+- `/mta:update-and-leave` - Record updates and deregister in one step
 - `/mta:dupe` - Spawn a duplicate worker on the same ticket
+
+**Cognitive Debt:**
 - `/mta:chunk` - Sync recorded chunks with branch state
 - `/mta:review` - Chunk-by-chunk code review walkthrough
 - `/mta:overview` - Quick cognitive debt triage
@@ -191,6 +210,10 @@ If you previously used MTA/MTM skills from the brain repo (`ai-agents/claude/ski
 - `/mtm:new-context` - Create a new shared context
 - `/mtm:archive` - Archive a completed context
 - `/mtm:slot` - Generate a claude-slot command for a ticket
+
+### Other Tools
+- `/work-context` - Analyze current work context and recommend top priorities
+- `claude-slot` - Opens a Ghostty tab in a worktree and starts Claude (used by `/mtm:slot` and `/mta:dupe`)
 
 ## Running Tests
 
