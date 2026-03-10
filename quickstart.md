@@ -9,32 +9,32 @@
   "work on PROJ-42"
        │
        ▼
-  ┌──────────┐    /mtm:new-context
-  │ Manager  │──────────────────────▶ creates PROJ-42 context
+  ┌──────────┐    /mtm:slot
+  │ Manager  │──────────────────────▶ spawns Worker A in worktree
   │ (MTM)    │    /mtm:slot
-  └──────────┘──────────────────────▶ spawns Worker A in worktree
-       │
-       │         /mtm:slot
-       └────────────────────────────▶ spawns Worker B in worktree
+  └──────────┘──────────────────────▶ spawns Worker B in worktree
 
                                           ┌────────────┐
                     /mta:join             │ Worker A   │
                  ◀────────────────────────│ (auth)     │
+                   (creates context       │            │
+                    if it doesn't exist)  │ commits... │
                     /mta:update           │            │
-                 ◀────────────────────────│ commits... │
-                    /mta:chunk            │            │
                  ◀────────────────────────│ logs chunks│
                     /mta:leave            │            │
                  ◀────────────────────────└────────────┘
 
               ┌──────────────────┐        ┌────────────┐
-              │                  │        │ Worker B   │
-              │  shared context  │◀───────│ (tests)    │
-              │  ─────────────── │        │            │
-              │  decisions       │        │ reads A's  │
-              │  tasks           │        │ decisions  │
-              │  blockers        │        └────────────┘
-              │  chunks          │
+              │  shared context  │◀───────│ Worker B   │
+              │  ─────────────── │        │ (tests)    │
+              │  decisions       │        │            │
+              │  tasks           │        │ reads A's  │
+              │  blockers        │        │ decisions  │
+              │  chunks          │        └────────────┘
+              │                  │
+              │  ~/.claude/      │
+              │  contexts/*.sup  │
+              │  (JSON files)    │
               └──────────────────┘
 
   LATER...
@@ -74,11 +74,11 @@ mta-context.sh debt       # cognitive debt across all tickets
 
 Every chunk of AI-generated code gets a RISC score (1-10):
 
-| | Low (1-3) | Medium (4-6) | High (7-10) |
-|---|---|---|---|
-| **R**each | Helper function | Shared module | Core architecture |
-| **I**rreversibility | Easy to revert | Schema change | Data migration |
-| **S**ubtlety | Obvious change | Some nuance | Non-obvious side effects |
-| **C**onsequence | Cosmetic | Feature impact | Security / data loss |
+|                     | Low (1-3)       | Medium (4-6)   | High (7-10)              |
+|---------------------|-----------------|----------------|--------------------------|
+| **R**each           | Helper function | Shared module  | Core architecture        |
+| **I**rreversibility | Easy to revert  | Schema change  | Data migration           |
+| **S**ubtlety        | Obvious change  | Some nuance    | Non-obvious side effects |
+| **C**onsequence     | Cosmetic        | Feature impact | Security / data loss     |
 
 High RISC = review this first. Low RISC = glance at it later (or don't).
