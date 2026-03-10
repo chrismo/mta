@@ -63,8 +63,9 @@
 /mtm:update
 
 # Review what they built
-mta-context.sh debt       # cognitive debt across all tickets
+/mta:overview             # triage — what needs attention?
 /mta:review               # guided walkthrough of unreviewed chunks
+                          # (these call mta-context.sh debt and chunk commands under the hood)
 
 # End of day
 /mtm:eod
@@ -82,3 +83,74 @@ Every chunk of AI-generated code gets a RISC score (1-10):
 | **C**onsequence     | Cosmetic        | Feature impact | Security / data loss     |
 
 High RISC = review this first. Low RISC = glance at it later (or don't).
+
+## Topologies
+
+Three ways I'll work with AI agents. Each has different cognitive debt risks,
+though topology is only one factor there. I can go Serial and still hand-off
+too much to Claude to-do without overseeing it. (C is Claude).
+
+```
+  Serial               Converge                Parallel
+  ──────               ────────                ────────
+
+   You                   You                     You
+    │                   / │ \                   / │ \
+    │                  /  │  \                 /  │  \
+    C                 C   C   C               C   C   C
+    │                  \  │  /                |   |   |
+    │                   \ │ /                 |   |   |
+ ┌─────┐               ┌──────┐            ┌───┐┌───┐┌───┐
+ │task │               │ task │            │ t ││ t ││ t │
+ └─────┘               └──────┘            └───┘└───┘└───┘
+```
+
+MTA is built for **Converge** and **Parallel** — the topologies where cognitive
+debt accumulates because you can't watch everything at once. Serial doesn't need
+it as much, but chunks still work there if you want a review trail.
+
+## Paying Down Cognitive Debt
+
+```
+  Workers are coding...         You haven't looked at any of it yet.
+
+  ┌─────────────────────────────────────────────────┐
+  │  /mta:overview                                  │
+  │                                                 │
+  │  PROJ-42: 5 unreviewed chunks                   │
+  │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   5%    │
+  │  highest RISC: 9  ← start here                  │
+  └─────────────────────────────────────────────────┘
+       │
+       ▼
+  ┌─────────────────────────────────────────────────┐
+  │  /mta:review                                    │
+  │                                                 │
+  │  Chunk 1/5: "New auth middleware" (RISC 9)      │
+  │  ───────────────────────────────────            │
+  │  Shows diff, explains intent, asks questions.   │
+  │  You sign off → marked reviewed.                │
+  └─────────────────────────────────────────────────┘
+       │
+       ▼  ... repeat ...
+       │
+       ▼
+  ┌─────────────────────────────────────────────────┐
+  │  /mta:overview                                  │
+  │                                                 │
+  │  PROJ-42: 2 unreviewed chunks                   │
+  │  ████████████████████████░░░░░░░░░░░░░░  60%    │
+  │  remaining are RISC 2-3 (low risk)              │
+  └─────────────────────────────────────────────────┘
+       │
+       ▼  review or skip the low-RISC stuff
+       │
+       ▼
+  ┌─────────────────────────────────────────────────┐
+  │  /mta:overview                                  │
+  │                                                 │
+  │  PROJ-42: 0 unreviewed chunks                   │
+  │  ██████████████████████████████████████ 100%    │
+  │  cognitive debt: paid off                       │
+  └─────────────────────────────────────────────────┘
+```
