@@ -1611,6 +1611,29 @@ _debt_for_ticket() {
   local branch_filter=""
   [[ -n "$branch" ]] && branch_filter=" and branch = '$branch'"
 
+  # Check total chunk count for this ticket
+  local total_count=0
+  if [[ -f "$chunks_file" ]]; then
+    total_count=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket'$branch_filter | count()" 2>/dev/null || echo "0")
+    [[ -z "$total_count" || "$total_count" == "null" ]] && total_count=0
+  fi
+
+  if [[ "$total_count" -eq 0 ]]; then
+    # No chunks — check if sessions exist (work was done but never chunked)
+    local session_count=0
+    if [[ -f "$CONTEXTS_DIR/sessions.sup" ]]; then
+      session_count=$(super -f line -c "from '$CONTEXTS_DIR/sessions.sup' | where ticket = '$ticket' | count()" 2>/dev/null || echo "0")
+      [[ -z "$session_count" || "$session_count" == "null" ]] && session_count=0
+    fi
+
+    if [[ "$session_count" -gt 0 ]]; then
+      echo "$ticket: ⚠ no chunks — run /mta:chunk to assess debt"
+    else
+      echo "$ticket: 0 unreviewed | weighted: 0 | 0 high-RISC"
+    fi
+    return 0
+  fi
+
   local unreviewed_count weighted high_risc_count
   unreviewed_count=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket'$branch_filter and reviewed_at is null | count()" 2>/dev/null || echo "0")
   weighted=$(super -f line -c "from '$chunks_file' | where ticket = '$ticket'$branch_filter and reviewed_at is null | sum(risc)" 2>/dev/null || echo "0")
@@ -1637,11 +1660,6 @@ cmd_debt() {
 
   ensure_dir
   require_super
-
-  if [[ ! -f "$CONTEXTS_DIR/chunks.sup" ]]; then
-    echo "No chunks found."
-    return 0
-  fi
 
   if [[ -n "$ticket" ]]; then
     _debt_for_ticket "$ticket" "$branch"

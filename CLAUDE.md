@@ -13,7 +13,7 @@ See [README.md](README.md) for full project docs, installation, usage, and schem
 ## Testing
 
 ```bash
-bats test/mta-context.bats
+bats --jobs 8 test/mta-context.bats
 ```
 
 **TDD is mandatory for ALL code changes** — bug fixes, refactors, new features. Write a failing test first, confirm it fails, then implement. For refactors, write tests that pin existing behavior before changing the code.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # mta-context.bats - Tests for mta-context.sh
 #
-# Run with: bats test/mta-context.bats
+# Run with: bats --jobs 8 test/mta-context.bats
 # Install bats: brew install bats-core (macOS) or apt install bats (linux)
 #
 # Tests marked with require_super will be skipped if super CLI is not installed.
@@ -1560,6 +1560,45 @@ MDEOF
   # Should show 2 unreviewed with weighted 10 (both chunks)
   [[ "$output" == *"2 unreviewed"* ]]
   [[ "$output" == *"weighted: 10"* ]]
+}
+
+@test "debt flags context with sessions but no chunks" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta join PROJ-1641 sess-001
+
+  run mta debt PROJ-1641
+  assert_success
+  [[ "$output" == *"no chunks"* ]]
+  [[ "$output" == *"/mta:chunk"* ]]
+}
+
+@test "debt flags unchunked contexts alongside chunked ones" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta create-context PROJ-1670 "CI experiment"
+  mta join PROJ-1641 sess-001
+  mta add-chunk PROJ-1670 c5d6e7f "ci tweak" 2
+
+  run mta debt
+  assert_success
+  # PROJ-1641 has a session but no chunks — should be flagged
+  [[ "$output" == *"PROJ-1641"* ]]
+  [[ "$output" == *"no chunks"* ]]
+  # PROJ-1670 has chunks — should show normal debt info
+  [[ "$output" == *"PROJ-1670"* ]]
+  [[ "$output" == *"1 unreviewed"* ]]
+}
+
+@test "debt does not flag context with no sessions and no chunks" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta debt PROJ-1641
+  assert_success
+  # No sessions, no chunks — nothing to flag
+  [[ "$output" != *"no chunks"* ]]
+  [[ "$output" == *"0 unreviewed"* ]]
 }
 
 # ==============================================================================
