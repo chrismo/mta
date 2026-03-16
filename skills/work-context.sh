@@ -554,12 +554,21 @@ function open_prs() {
 # ─────────────────────────────────────────────────────────────────────────────
 
 function worktrees_json() {
-    local now
+    local now show_all=false
     now=$(date +%s)
+
+    for arg in "$@"; do
+        case "$arg" in
+            --all) show_all=true ;;
+        esac
+    done
+
+    local filter=""
+    [[ "$show_all" == "false" ]] && filter="| where not grep('^staging', branch)"
 
     collect_worktree_data | super -f json -c "
       put age_days := ((${now} - commit_ts) / 86400)::int64
-      | where not grep('^staging', branch)
+      ${filter}
       | sort age_days
     " -
 }
@@ -697,6 +706,7 @@ function usage() {
 	Commands:
 	  all [days]            Show worktrees, PRs, cloud sessions, and conversations (default: 7)
 	  worktrees             Show git worktree status only
+	  worktrees_json --all  JSON worktree list including staging branches
 	  open_prs              Show open PRs for configured github_orgs
 	  cloud_sessions        Show Claude web session branches and PRs
 	  conversations [days]  Show Claude conversations only (default: 7)

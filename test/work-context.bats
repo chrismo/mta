@@ -3,6 +3,9 @@
 #
 # Run with: bats test/work-context.bats
 
+load '/opt/homebrew/lib/bats-support/load.bash'
+load '/opt/homebrew/lib/bats-assert/load.bash'
+
 SCRIPT="${BATS_TEST_DIRNAME}/../skills/work-context.sh"
 
 setup() {
@@ -29,8 +32,9 @@ setup() {
   export CLAUDE_PROJECTS_DIR="$TEST_HOME/.claude/projects"
   export WORK_CONTEXT_CONFIG="$TEST_HOME/.config/work-context.sup"
   source "$SCRIPT"
-  # Undo strict mode from sourced script (bats needs to catch failures)
-  set +euo pipefail
+  # Undo strict -u (unbound vars) and -o pipefail from sourced script,
+  # but keep -e so bats assertions actually catch failures
+  set +uo pipefail
 }
 
 teardown() {
@@ -172,4 +176,45 @@ create_conversation() {
   run conversations_json 0
   assert_success
   [[ "$output" == *"sess-late"* ]]
+}
+
+# ==============================================================================
+# worktrees_json filtering
+# ==============================================================================
+
+# Helper: override collect_worktree_data with fake worktree records
+inject_worktree_data() {
+  local now
+  now=$(date +%s)
+  # Must export so override survives into pipe subshells
+  collect_worktree_data() {
+    local _now; _now=$(date +%s)
+    printf '{"name":"ds1","branch":"main","commit_ts":%s,"commit_msg":"latest commit","dirty":false}\n' "$_now"
+    printf '{"name":"ds2","branch":"staging-2","commit_ts":%s,"commit_msg":"old commit","dirty":false}\n' "$((_now - 86400 * 30))"
+    printf '{"name":"ds3","branch":"feat-123-something","commit_ts":%s,"commit_msg":"feature work","dirty":true}\n' "$((_now - 86400 * 5))"
+    printf '{"name":"ds4","branch":"staging-7","commit_ts":%s,"commit_msg":"parked","dirty":false}\n' "$((_now - 86400 * 20))"
+  }
+  export -f collect_worktree_data
+}
+
+@test "worktrees_json excludes staging branches by default" {
+  inject_worktree_data
+
+  local result
+  result=$(worktrees_json)
+  echo "$result" | grep -q "ds1"
+  echo "$result" | grep -q "ds3"
+  ! echo "$result" | grep -q "staging-2"
+  ! echo "$result" | grep -q "staging-7"
+}
+
+@test "worktrees_json --all includes staging branches" {
+  inject_worktree_data
+
+  local result
+  result=$(worktrees_json --all)
+  echo "$result" | grep -q "staging-2"
+  echo "$result" | grep -q "staging-7"
+  echo "$result" | grep -q "ds1"
+  echo "$result" | grep -q "ds3"
 }

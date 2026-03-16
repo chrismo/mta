@@ -24,10 +24,11 @@ Example: `/mtm:slot PROJ-1714`
 
 2. **Find available worktree slots**:
    ```bash
-   work-context data 7 2>/dev/null
+   work-context worktrees_json --all 2>/dev/null
    ```
-   - Identify stale worktrees (age > 3 days, or marked done/archived)
-   - Prefer slots with no active context or completed work
+   - This is lightweight (just git commands, no PR/conversation lookups)
+   - Prefer worktrees on `staging-*` branches (these are "parked" and ready to use)
+   - Then consider stale worktrees (age > 3 days, or marked done/archived)
    - List top 2-3 candidates
 
 3. **Check for existing context**:

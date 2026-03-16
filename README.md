@@ -220,13 +220,16 @@ super --version
 ## Running Tests
 
 ```bash
-# Install bats-core
-brew install bats-core  # macOS
-apt install bats        # Linux
+# Install bats-core and helper libraries
+brew install bats-core                    # macOS
+brew tap kaos/shell && brew install bats-assert  # installs bats-assert + bats-support
+
+# Linux: see https://github.com/bats-core/bats-core#installation
+#   and https://github.com/ztombol/bats-docs#installation
 
 # Run tests
-cd test
-bats mta-context.bats
+bats --jobs 8 test/mta-context.bats
+bats --jobs 8 test/work-context.bats
 ```
 
 ## Schema
