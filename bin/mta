@@ -2,7 +2,7 @@
 # mta - Human-friendly launcher for MTA contexts
 #
 # Usage:
-#   mta                    Interactive fzf picker → claude /mta:join
+#   mta                    Interactive grdy+fzf picker → claude /mta:join
 #   mta <ticket>           Create-if-missing → claude /mta:join <ticket>
 #   mta <ticket> <wd>      Create-if-missing → claude-slot <wd> /mta:join <ticket>
 #
@@ -38,22 +38,29 @@ if [[ $# -gt 2 ]]; then
 fi
 
 if [[ $# -eq 0 ]]; then
-  # Interactive mode: list contexts → fzf → join
-  csv_output=$("$ENGINE" list-contexts --format=csv)
-  body=$(echo "$csv_output" | tail -n +2)
+  # Interactive mode: list contexts → grdy (table) → fzf (pick) → join
+  json_output=$("$ENGINE" list-contexts --format=json)
 
-  if [[ -z "$body" ]]; then
+  if [[ -z "$json_output" || "$json_output" == "No contexts found." ]]; then
     echo "No contexts found. Create one with: mta <ticket>" >&2
     exit 1
   fi
 
-  if ! command -v fzf &>/dev/null; then
-    echo "fzf not found. Install it or pass a ticket directly: mta <ticket>" >&2
-    exit 1
-  fi
+  for cmd in grdy fzf; do
+    if ! command -v "$cmd" &>/dev/null; then
+      echo "$cmd not found. Install it or pass a ticket directly: mta <ticket>" >&2
+      exit 1
+    fi
+  done
 
-  pick=$(echo "$body" | fzf --prompt="Pick context: ")
-  ticket=$(echo "$pick" | cut -d, -f1)
+  # grdy renders JSON as a nice table, fzf picks a row, then extract ticket
+  table=$(echo "$json_output" | grdy)
+  # Header is 3 lines (top border, column names, separator), footer is 1 line (bottom border)
+  # Feed data rows to fzf, show the column header as fzf header
+  header=$(echo "$table" | head -n 3)
+  pick=$(echo "$table" | tail -n +4 | head -n -1 | fzf --header="$header" --prompt="Pick context: ")
+  # Extract ticket from first column: │ TICKET │ ... │
+  ticket=$(echo "$pick" | awk -F'│' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}')
   run_or_print claude "/mta:join ${ticket}"
 else
   ticket="$1"
