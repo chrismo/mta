@@ -3,7 +3,7 @@
 # MTA installer - set up CLI tools and Claude Code skills
 #
 # What this does:
-#   1. Checks dependencies (super CLI)
+#   1. Checks dependencies (super CLI, optional: grdy, fzf)
 #   2. Symlinks bin/* -> ~/.local/bin/
 #   3. Symlinks skills/*.sh -> ~/.local/bin/ (skill-bundled scripts)
 #   4. Symlinks skills/mta/ and skills/mtm/ -> ~/.claude/commands/
@@ -25,6 +25,17 @@ if ! command -v super &>/dev/null; then
   echo "Error: 'super' CLI not found. Install SuperDB first:"
   echo "  brew install superdb"
   exit 1
+fi
+
+# Optional: grdy + fzf (needed for interactive `mta` picker)
+if ! command -v grdy &>/dev/null; then
+  echo "Note: 'grdy' not found. Required for interactive 'mta' picker."
+  echo "  brew install chrismo/grdy/grdy"
+fi
+
+if ! command -v fzf &>/dev/null; then
+  echo "Note: 'fzf' not found. Required for interactive 'mta' picker."
+  echo "  brew install fzf"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
