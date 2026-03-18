@@ -59,8 +59,11 @@ if [[ $# -eq 0 ]]; then
   # Header is 3 lines (top border, column names, separator), footer is 1 line (bottom border)
   # Feed data rows to fzf, show the column header as fzf header
   header=$(echo "$table" | head -n 3)
-  fzf_cmd="${MTA_FZF_CMD:-fzf --header="$header" --prompt="Pick context: "}"
-  pick=$(echo "$table" | tail -n +4 | sed '$d' | $fzf_cmd)
+  if [[ -n "${MTA_FZF_CMD:-}" ]]; then
+    pick=$(echo "$table" | tail -n +4 | sed '$d' | $MTA_FZF_CMD)
+  else
+    pick=$(echo "$table" | tail -n +4 | sed '$d' | fzf --header="$header" --prompt="Pick context: ")
+  fi
   # Extract ticket from first column: │ TICKET │ ... │
   ticket=$(echo "$pick" | awk -F'│' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}')
   run_or_print claude "/mta:join ${ticket}"
