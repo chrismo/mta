@@ -13,11 +13,11 @@ Ticket-centric tooling for AI-assisted development: **multi-session coordination
 When multiple Claude sessions work on the same ticket, they need shared context — who's working on what, what decisions were made, what's blocked, what remains.
 
 ```bash
-mta-context.sh create-context PROJ-1641 "Upgrade auth service"
-mta-context.sh join PROJ-1641 ds5/session-abc
-mta-context.sh add-decision PROJ-1641 "Using bc for ceiling calc"
-mta-context.sh add-task PROJ-1641 "Add retry logic"
-mta-context.sh leave PROJ-1641 ds5/session-abc done "implemented scaling"
+mta-engine create-context PROJ-1641 "Upgrade auth service"
+mta-engine join PROJ-1641 ds5/session-abc
+mta-engine add-decision PROJ-1641 "Using bc for ceiling calc"
+mta-engine add-task PROJ-1641 "Add retry logic"
+mta-engine leave PROJ-1641 ds5/session-abc done "implemented scaling"
 ```
 
 ### Cognitive Debt: What has the human actually reviewed?
@@ -25,10 +25,10 @@ mta-context.sh leave PROJ-1641 ds5/session-abc done "implemented scaling"
 AI agents produce code fast. The human can't review it all at once. Chunks break each commit into RISC-graded pieces so the human can triage what needs attention and track what they've reviewed.
 
 ```bash
-mta-context.sh add-chunk PROJ-1641 abc123 "New retry logic" 7
-mta-context.sh list-chunks PROJ-1641 --unreviewed
-mta-context.sh debt PROJ-1641
-mta-context.sh review-chunk PROJ-1641 "retry"
+mta-engine add-chunk PROJ-1641 abc123 "New retry logic" 7
+mta-engine list-chunks PROJ-1641 --unreviewed
+mta-engine debt PROJ-1641
+mta-engine review-chunk PROJ-1641 "retry"
 ```
 
 ### Why one repo?
@@ -59,7 +59,7 @@ asdf install superdb latest
 asdf global superdb latest
 ```
 
-### Install mta-context.sh
+### Install mta-engine
 
 ```bash
 # Clone and add to PATH
@@ -67,7 +67,7 @@ git clone https://github.com/chrismo/mta.git
 export PATH="$PATH:$(pwd)/mta/bin"
 
 # Or copy to your bin
-cp mta/bin/mta-context.sh ~/.local/bin/
+cp mta/bin/mta-engine ~/.local/bin/
 ```
 
 ## Usage
@@ -75,33 +75,33 @@ cp mta/bin/mta-context.sh ~/.local/bin/
 ### Context Management
 
 ```bash
-mta-context.sh create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
-mta-context.sh list-contexts [--format=json|csv|table]
-mta-context.sh get-context <ticket>
+mta-engine create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
+mta-engine list-contexts [--format=json|csv|table]
+mta-engine get-context <ticket>
 ```
 
 ### Session Management
 
 ```bash
-mta-context.sh session-id                          # Auto-detect session identifier
-mta-context.sh join <ticket> [session-id]           # Session ID auto-detected if omitted
-mta-context.sh leave <ticket> <session-id> <status> [note]
-mta-context.sh list-sessions [ticket] [--format=json|csv|table]
+mta-engine session-id                          # Auto-detect session identifier
+mta-engine join <ticket> [session-id]           # Session ID auto-detected if omitted
+mta-engine leave <ticket> <session-id> <status> [note]
+mta-engine list-sessions [ticket] [--format=json|csv|table]
 ```
 
 ### Decisions, Tasks, Blockers
 
 ```bash
-mta-context.sh add-decision <ticket> <text>
-mta-context.sh list-decisions <ticket> [--format=json|csv|table]
+mta-engine add-decision <ticket> <text>
+mta-engine list-decisions <ticket> [--format=json|csv|table]
 
-mta-context.sh add-task <ticket> <text>
-mta-context.sh complete-task <ticket> <pattern>
-mta-context.sh list-tasks [ticket] [--pending] [--format=json|csv|table]
+mta-engine add-task <ticket> <text>
+mta-engine complete-task <ticket> <pattern>
+mta-engine list-tasks [ticket] [--pending] [--format=json|csv|table]
 
-mta-context.sh add-blocker <ticket> <text>
-mta-context.sh resolve-blocker <ticket> <pattern>
-mta-context.sh list-blockers [--unresolved] [--format=json|csv|table]
+mta-engine add-blocker <ticket> <text>
+mta-engine resolve-blocker <ticket> <pattern>
+mta-engine list-blockers [--unresolved] [--format=json|csv|table]
 ```
 
 ### Chunks (Cognitive Debt)
@@ -110,24 +110,24 @@ Track what the human has and hasn't reviewed. Each commit is broken into RISC-gr
 
 ```bash
 # Legacy mode (combined score):
-mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
+mta-engine add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
 
 # Component mode (per-category scores, risc auto-computed as min(sum, 10)):
-mta-context.sh add-chunk <ticket> <commit> <summary> 1 \
+mta-engine add-chunk <ticket> <commit> <summary> 1 \
   --reach=N --irrev=N --subtle=N --conseq=N [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
 
 # Branch is auto-detected from git if --branch not provided
 
-mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]
-mta-context.sh chunk-diff <ticket> <summary-pattern>    # Show git diff for a chunk's commit(s)
-mta-context.sh review-chunk <ticket> <summary-pattern>
+mta-engine list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]
+mta-engine chunk-diff <ticket> <summary-pattern>    # Show git diff for a chunk's commit(s)
+mta-engine review-chunk <ticket> <summary-pattern>
 
 # update-chunk supports both --risc=N (legacy) and component flags:
-mta-context.sh update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
-mta-context.sh update-chunk <ticket> <summary-pattern> [--reach=N] [--irrev=N] [--subtle=N] [--conseq=N] [--summary=...]
+mta-engine update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]
+mta-engine update-chunk <ticket> <summary-pattern> [--reach=N] [--irrev=N] [--subtle=N] [--conseq=N] [--summary=...]
 
-mta-context.sh delete-chunk <ticket> <summary-pattern>
-mta-context.sh debt [ticket] [--branch=...]    # Show cognitive debt summary
+mta-engine delete-chunk <ticket> <summary-pattern>
+mta-engine debt [ticket] [--branch=...]    # Show cognitive debt summary
 ```
 
 RISC (1-10) = **R**each, **I**rreversibility, **S**ubtlety, **C**onsequence. Higher = needs more human attention.
@@ -136,15 +136,15 @@ Component mode stores individual scores and computes `risc = min(R + I + S + C, 
 ### Status & Archive
 
 ```bash
-mta-context.sh status [ticket]  # Full overview
-mta-context.sh archive <ticket>
-mta-context.sh unarchive <ticket>
+mta-engine status [ticket]  # Full overview
+mta-engine archive <ticket>
+mta-engine unarchive <ticket>
 ```
 
 ### Migration
 
 ```bash
-mta-context.sh import <context.md>  # Import old markdown context into SuperDB
+mta-engine import <context.md>  # Import old markdown context into SuperDB
 ```
 
 ## Data Storage
@@ -179,8 +179,8 @@ Add the MTA `skills/` directory as a skills source in your Claude Code settings.
 ### 3. Verify
 
 ```bash
-# Check mta-context.sh is available
-which mta-context.sh
+# Check mta-engine is available
+which mta-engine
 
 # Check super CLI is installed
 super --version
@@ -228,7 +228,7 @@ brew tap kaos/shell && brew install bats-assert  # installs bats-assert + bats-s
 #   and https://github.com/ztombol/bats-docs#installation
 
 # Run tests
-bats --jobs 8 test/mta-context.bats
+bats --jobs 8 test/mta-engine.bats test/mta.bats
 bats --jobs 8 test/work-context.bats
 ```
 

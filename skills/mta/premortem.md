@@ -27,8 +27,8 @@ Do NOT give up quickly. Follow this discovery chain:
 2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
 3. **Search contexts**:
    ```bash
-   mta-context.sh get-context <TICKET>
-   mta-context.sh list-contexts
+   mta-engine get-context <TICKET>
+   mta-engine list-contexts
    ```
 4. **If context found**: Proceed — treat it as if you joined.
 5. **If no context found**: Ask the user which ticket to review.
@@ -37,7 +37,7 @@ Do NOT give up quickly. Follow this discovery chain:
 
 1. Get unreviewed chunks for the current ticket:
    ```bash
-   mta-context.sh list-chunks <TICKET> --unreviewed
+   mta-engine list-chunks <TICKET> --unreviewed
    ```
 
 2. Filter to high-RISC chunks (RISC >= 7) unless `--all` specified.
@@ -68,12 +68,12 @@ Do NOT give up quickly. Follow this discovery chain:
 
 5. Mark selected chunks:
    ```bash
-   mta-context.sh review-chunk <TICKET> "<summary>"
+   mta-engine review-chunk <TICKET> "<summary>"
    ```
 
 6. Show updated debt:
    ```bash
-   mta-context.sh debt <TICKET>
+   mta-engine debt <TICKET>
    ```
 
 ## Output Format

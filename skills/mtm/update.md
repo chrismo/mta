@@ -18,27 +18,27 @@ Lightweight mid-day check of coordinated work and today's activity.
 
 1. List all active contexts:
    ```bash
-   mta-context.sh list-contexts
+   mta-engine list-contexts
    ```
 
 2. Get status overview (sessions, decisions, blockers per context):
    ```bash
-   mta-context.sh status
+   mta-engine status
    ```
 
 3. Check for unresolved blockers:
    ```bash
-   mta-context.sh list-blockers --unresolved
+   mta-engine list-blockers --unresolved
    ```
 
 4. List active sessions:
    ```bash
-   mta-context.sh list-sessions
+   mta-engine list-sessions
    ```
 
 5. Check cognitive debt:
    ```bash
-   mta-context.sh debt
+   mta-engine debt
    ```
 
 6. Run `work-context conversations 0` (today only) for quick session overview

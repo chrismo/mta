@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# mta - Human-friendly launcher for MTA contexts
+#
+# Usage:
+#   mta                    Interactive fzf picker → claude /mta:join
+#   mta <ticket>           Create-if-missing → claude /mta:join <ticket>
+#   mta <ticket> <wd>      Create-if-missing → claude-slot <wd> /mta:join <ticket>
+#
+# Environment:
+#   MTA_DRY_RUN=1          Print the command instead of executing (for testing)
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENGINE="${SCRIPT_DIR}/mta-engine"
+
+# Create context if it doesn't exist yet
+ensure_context() {
+  local ticket="$1"
+  if "$ENGINE" get-context "$ticket" &>/dev/null; then
+    return
+  fi
+  "$ENGINE" create-context "$ticket" "$ticket"
+}
+
+# Execute or dry-run a command
+run_or_print() {
+  if [[ "${MTA_DRY_RUN:-}" == "1" ]]; then
+    echo "$*"
+  else
+    exec "$@"
+  fi
+}
+
+if [[ $# -gt 2 ]]; then
+  echo "Usage: mta [<ticket> [<working-dir>]]" >&2
+  exit 1
+fi
+
+if [[ $# -eq 0 ]]; then
+  # Interactive mode: list contexts → fzf → join
+  csv_output=$("$ENGINE" list-contexts --format=csv)
+  body=$(echo "$csv_output" | tail -n +2)
+
+  if [[ -z "$body" ]]; then
+    echo "No contexts found. Create one with: mta <ticket>" >&2
+    exit 1
+  fi
+
+  if ! command -v fzf &>/dev/null; then
+    echo "fzf not found. Install it or pass a ticket directly: mta <ticket>" >&2
+    exit 1
+  fi
+
+  pick=$(echo "$body" | fzf --prompt="Pick context: ")
+  ticket=$(echo "$pick" | cut -d, -f1)
+  run_or_print claude "/mta:join ${ticket}"
+else
+  ticket="$1"
+  ensure_context "$ticket"
+
+  if [[ $# -eq 2 ]]; then
+    wd="$2"
+    run_or_print claude-slot "$wd" "/mta:join ${ticket}"
+  else
+    run_or_print claude "/mta:join ${ticket}"
+  fi
+fi

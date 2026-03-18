@@ -25,8 +25,8 @@ Do NOT give up quickly. Follow this discovery chain:
 2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
 3. **Search contexts**:
    ```bash
-   mta-context.sh get-context <TICKET>
-   mta-context.sh list-contexts
+   mta-engine get-context <TICKET>
+   mta-engine list-contexts
    ```
 4. **If context found**: Proceed — treat it as if you joined.
 5. **If no context found**: Ask the user which ticket to review.
@@ -35,7 +35,7 @@ Do NOT give up quickly. Follow this discovery chain:
 
 1. Get unreviewed chunks for the current ticket, sorted by RISC:
    ```bash
-   mta-context.sh list-chunks <TICKET> --unreviewed
+   mta-engine list-chunks <TICKET> --unreviewed
    ```
 
 2. For each chunk (up to 5 per session), starting with highest RISC:
@@ -91,7 +91,7 @@ Do NOT give up quickly. Follow this discovery chain:
 
    e. If satisfied:
       ```bash
-      mta-context.sh review-chunk <TICKET> "<summary>"
+      mta-engine review-chunk <TICKET> "<summary>"
       ```
 
 3. The human can say:
@@ -101,7 +101,7 @@ Do NOT give up quickly. Follow this discovery chain:
 
 4. After the quiz, show updated debt:
    ```bash
-   mta-context.sh debt <TICKET>
+   mta-engine debt <TICKET>
    ```
 
 ## Output Format

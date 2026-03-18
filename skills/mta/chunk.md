@@ -25,8 +25,8 @@ Do NOT give up quickly. Follow this discovery chain:
 2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
 3. **Search contexts**:
    ```bash
-   mta-context.sh get-context <TICKET>
-   mta-context.sh list-contexts
+   mta-engine get-context <TICKET>
+   mta-engine list-contexts
    ```
 4. **If context found**: Proceed — treat it as if you joined.
 5. **If no context found**: Ask the user which ticket to chunk.
@@ -41,7 +41,7 @@ Do NOT give up quickly. Follow this discovery chain:
 
 2. Get existing chunk commit SHAs:
    ```bash
-   mta-context.sh list-chunks <TICKET> --format=commits
+   mta-engine list-chunks <TICKET> --format=commits
    ```
    This outputs one SHA per line (comma-separated SHAs are auto-split).
 
@@ -76,17 +76,17 @@ Do NOT give up quickly. Follow this discovery chain:
    d. Create via CLI (component mode — preferred):
       ```bash
       # Small scattered change — one chunk, multiple files
-      mta-context.sh add-chunk <TICKET> "<commit-sha>" "<summary>" 1 \
+      mta-engine add-chunk <TICKET> "<commit-sha>" "<summary>" 1 \
         --reach=1 --irrev=1 --subtle=1 --conseq=1 \
         --files="config-a.sh,config-b.sh" --risc-reason="<why this score>"
 
       # Big file, multiple chunks with line ranges
-      mta-context.sh add-chunk <TICKET> "<commit-sha>" "<summary>" 1 \
+      mta-engine add-chunk <TICKET> "<commit-sha>" "<summary>" 1 \
         --reach=2 --irrev=3 --subtle=2 --conseq=1 \
         --files="big-file.sh" --lines="big-file.sh:42-58" --risc-reason="..."
 
       # Cross-commit logical change
-      mta-context.sh add-chunk <TICKET> "<sha1>,<sha2>" "<summary>" 1 \
+      mta-engine add-chunk <TICKET> "<sha1>,<sha2>" "<summary>" 1 \
         --reach=3 --irrev=2 --subtle=3 --conseq=2 \
         --files="file-a.sh,file-b.sh" \
         --lines="file-a.sh:120-135,file-b.sh:1-40" --risc-reason="..."
@@ -129,7 +129,7 @@ but some of its changed lines might not belong to any chunk.
 
 Approach — two layers:
 
-1. **Deterministic script** (`mta-context.sh chunk-gaps <TICKET>`):
+1. **Deterministic script** (`mta-engine chunk-gaps <TICKET>`):
    - `git diff main..HEAD` → parse hunk headers for `(file, start, count)` of every
      changed line range in the final (HEAD) state
    - `git blame -L start,end file` on each range → `(file, line, commit)` tuples

@@ -7,7 +7,7 @@ Current mta skills (join, update, leave) trigger many permission prompts because
 ## Solution
 
 1. Store context data in `.sup` files (SuperDB format)
-2. Shell script (`mta-context.sh`) handles all file operations via `super` CLI
+2. Shell script (`mta-engine`) handles all file operations via `super` CLI
 3. Skills invoke the script instead of direct file access
 4. One script approval vs many read/write approvals
 
@@ -88,35 +88,35 @@ super -c "from 'decisions.sup' | where ts > '2026-01-28T00:00:00Z' | sort ts des
 ## Script Interface
 
 ```bash
-mta-context.sh <command> [args]
+mta-engine <command> [args]
 
 # Context management
-mta-context.sh create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
-mta-context.sh list-contexts
-mta-context.sh get-context <ticket>
+mta-engine create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
+mta-engine list-contexts
+mta-engine get-context <ticket>
 
 # Session management
-mta-context.sh join <ticket> <session-id>
-mta-context.sh leave <ticket> <session-id> <status> [note]
-mta-context.sh list-sessions [ticket]
+mta-engine join <ticket> <session-id>
+mta-engine leave <ticket> <session-id> <status> [note]
+mta-engine list-sessions [ticket]
 
 # Decisions
-mta-context.sh add-decision <ticket> <text>
-mta-context.sh list-decisions <ticket>
+mta-engine add-decision <ticket> <text>
+mta-engine list-decisions <ticket>
 
 # Tasks
-mta-context.sh add-task <ticket> <text>
-mta-context.sh complete-task <ticket> <task-text-pattern>
-mta-context.sh list-tasks [ticket] [--pending]
+mta-engine add-task <ticket> <text>
+mta-engine complete-task <ticket> <task-text-pattern>
+mta-engine list-tasks [ticket] [--pending]
 
 # Blockers
-mta-context.sh add-blocker <ticket> <text>
-mta-context.sh resolve-blocker <ticket> <blocker-text-pattern>
-mta-context.sh list-blockers [--unresolved]
+mta-engine add-blocker <ticket> <text>
+mta-engine resolve-blocker <ticket> <blocker-text-pattern>
+mta-engine list-blockers [--unresolved]
 
 # Status/reporting
-mta-context.sh status [ticket]           # formatted status for one or all
-mta-context.sh archive <ticket>          # move to archive
+mta-engine status [ticket]           # formatted status for one or all
+mta-engine archive <ticket>          # move to archive
 ```
 
 ## Migration

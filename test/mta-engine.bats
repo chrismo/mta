@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
-# mta-context.bats - Tests for mta-context.sh
+# mta-engine.bats - Tests for mta-engine
 #
-# Run with: bats --jobs 8 test/mta-context.bats
+# Run with: bats --jobs 8 test/mta-engine.bats
 # Install bats: brew install bats-core (macOS) or apt install bats (linux)
 #
 # Tests marked with require_super will be skipped if super CLI is not installed.

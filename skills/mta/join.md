@@ -25,18 +25,18 @@ Register this Claude session as part of a coordinated effort on a ticket.
 
 2. Check if context exists:
    ```bash
-   mta-context.sh get-context <TICKET>
+   mta-engine get-context <TICKET>
    ```
-   - If not, offer to create it with `mta-context.sh create-context`
+   - If not, offer to create it with `mta-engine create-context`
 
 3. Register this session (session ID is auto-detected):
    ```bash
-   mta-context.sh join <TICKET>
+   mta-engine join <TICKET>
    ```
 
 5. Display current status:
    ```bash
-   mta-context.sh status <TICKET>
+   mta-engine status <TICKET>
    ```
 
 6. Store the ticket reference for this session so `/mta:read` and `/mta:update` know where to read/write
@@ -70,5 +70,5 @@ This will initialize the context in ~/.claude/contexts/
 
 If user confirms:
 ```bash
-mta-context.sh create-context <TICKET> "<title>" [--ticket-url=...] [--branch=...] [--worktree=...]
+mta-engine create-context <TICKET> "<title>" [--ticket-url=...] [--branch=...] [--worktree=...]
 ```

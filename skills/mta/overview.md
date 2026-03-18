@@ -25,8 +25,8 @@ Do NOT give up quickly. Follow this discovery chain:
 2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
 3. **Search contexts**:
    ```bash
-   mta-context.sh get-context <TICKET>
-   mta-context.sh list-contexts
+   mta-engine get-context <TICKET>
+   mta-engine list-contexts
    ```
 4. **If context found**: Proceed — treat it as if you joined.
 5. **If no context found**: Ask the user which ticket to review.
@@ -35,17 +35,17 @@ Do NOT give up quickly. Follow this discovery chain:
 
 1. Get full context status (sessions, decisions, pending tasks, unresolved blockers):
    ```bash
-   mta-context.sh status <TICKET>
+   mta-engine status <TICKET>
    ```
 
 2. Get debt summary (scoped to current branch):
    ```bash
-   mta-context.sh debt <TICKET> --branch=$(git branch --show-current)
+   mta-engine debt <TICKET> --branch=$(git branch --show-current)
    ```
 
 3. Get unreviewed chunks (scoped to current branch):
    ```bash
-   mta-context.sh list-chunks <TICKET> --unreviewed --branch=$(git branch --show-current)
+   mta-engine list-chunks <TICKET> --unreviewed --branch=$(git branch --show-current)
    ```
 
 4. Quick gap check — compare branch commits against chunk coverage:
@@ -125,5 +125,5 @@ Omit any section that has no data (e.g., no blockers → skip the Blockers secti
 - This is called automatically at the end of `/mta:update`
 - **Gap check limitation**: The current gap check is commit-level only — it checks
   whether a commit SHA appears in any chunk. A chunk can claim a commit but only
-  cover part of its diff. A future `mta-context.sh chunk-gaps` command will do
+  cover part of its diff. A future `mta-engine chunk-gaps` command will do
   line-level coverage checking (see TODO in `/mta:chunk` notes).

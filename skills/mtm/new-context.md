@@ -28,13 +28,13 @@ When the goal is achieved, archive the context.
 
 1. Check if context already exists:
    ```bash
-   mta-context.sh get-context <GOAL-NAME>
+   mta-engine get-context <GOAL-NAME>
    ```
    - If yes, show current state and ask if user wants to proceed
 
 2. Create the context:
    ```bash
-   mta-context.sh create-context <GOAL-NAME> "<title>" [--ticket-url=...] [--branch=...] [--worktree=...]
+   mta-engine create-context <GOAL-NAME> "<title>" [--ticket-url=...] [--branch=...] [--worktree=...]
    ```
 
 ## Output

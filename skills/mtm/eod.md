@@ -28,23 +28,23 @@ Wind down coordinated work across Claude sessions.
 
 2. **Review active contexts**:
    ```bash
-   mta-context.sh list-contexts
-   mta-context.sh status
+   mta-engine list-contexts
+   mta-engine status
    ```
 
 3. **Record EOD summaries** for each active context:
    ```bash
-   mta-context.sh add-decision <TICKET> "EOD: <summary of today's progress and tomorrow's plan>"
+   mta-engine add-decision <TICKET> "EOD: <summary of today's progress and tomorrow's plan>"
    ```
 
 4. **Check for unresolved blockers**:
    ```bash
-   mta-context.sh list-blockers --unresolved
+   mta-engine list-blockers --unresolved
    ```
 
 5. **Check cognitive debt**:
    ```bash
-   mta-context.sh debt
+   mta-engine debt
    ```
    Flag contexts where debt grew today (compare chunk timestamps to today's date).
 

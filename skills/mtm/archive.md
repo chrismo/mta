@@ -20,17 +20,17 @@ Example: `/mtm:archive PROJ-1697`
 
 1. Verify the context exists:
    ```bash
-   mta-context.sh get-context <TICKET>
+   mta-engine get-context <TICKET>
    ```
 
 2. Show current state so user can confirm:
    ```bash
-   mta-context.sh status <TICKET>
+   mta-engine status <TICKET>
    ```
 
 3. Archive the context:
    ```bash
-   mta-context.sh archive <TICKET>
+   mta-engine archive <TICKET>
    ```
 
 ## Output Format
@@ -42,4 +42,4 @@ Archived <TICKET>.
 ## Notes
 
 - Archived contexts are excluded from `/mtm:update` and `/mtm:start-day`
-- To view archived contexts: `mta-context.sh list-contexts` (shows all including archived)
+- To view archived contexts: `mta-engine list-contexts` (shows all including archived)

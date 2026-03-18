@@ -1,6 +1,6 @@
 # MTA Context Tests
 
-Tests for `mta-context.sh` using [bats-core](https://github.com/bats-core/bats-core).
+Tests for `mta-engine` using [bats-core](https://github.com/bats-core/bats-core).
 
 ## Prerequisites
 
@@ -37,22 +37,22 @@ sudo mv super /usr/local/bin/
 ```bash
 # From the test directory
 cd ai-agents/claude/test
-bats mta-context.bats
+bats mta-engine.bats
 
 # Or with verbose output
-bats --verbose-run mta-context.bats
+bats --verbose-run mta-engine.bats
 
 # Run specific test
-bats --filter "create-context" mta-context.bats
+bats --filter "create-context" mta-engine.bats
 
 # TAP output (for CI)
-bats --tap mta-context.bats
+bats --tap mta-engine.bats
 ```
 
 ## Test Structure
 
 - `test_helper.bash` - Setup/teardown, common helpers
-- `mta-context.bats` - Main test file
+- `mta-engine.bats` - Main test file
 
 Each test runs in an isolated temp directory (`$TEST_CONTEXTS_DIR`), cleaned up automatically.
 
@@ -60,7 +60,7 @@ Each test runs in an isolated temp directory (`$TEST_CONTEXTS_DIR`), cleaned up 
 
 ```bash
 @test "descriptive test name" {
-  # Setup: use mta helper (wraps mta-context.sh)
+  # Setup: use mta helper (wraps mta-engine)
   mta create-context TICKET-123 "Title"
 
   # Act: run command under test
@@ -76,7 +76,7 @@ Each test runs in an isolated temp directory (`$TEST_CONTEXTS_DIR`), cleaned up 
 
 | Helper | Description |
 |--------|-------------|
-| `mta <cmd> [args]` | Run mta-context.sh with test env |
+| `mta <cmd> [args]` | Run mta-engine with test env |
 | `sup_query <file> <query>` | Query a .sup file |
 | `sup_count <file> [where]` | Count records |
 | `assert_success` | Exit code was 0 |

@@ -25,8 +25,8 @@ Do NOT give up quickly. Follow this discovery chain:
 2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
 3. **Search contexts**:
    ```bash
-   mta-context.sh get-context <TICKET>
-   mta-context.sh list-contexts
+   mta-engine get-context <TICKET>
+   mta-engine list-contexts
    ```
 4. **If context found**: Proceed — treat it as if you joined.
 5. **If no context found**: Ask the user which ticket to review.
@@ -35,7 +35,7 @@ Do NOT give up quickly. Follow this discovery chain:
 
 1. Get unreviewed chunks sorted by RISC descending:
    ```bash
-   mta-context.sh list-chunks <TICKET> --unreviewed --branch=$(git branch --show-current)
+   mta-engine list-chunks <TICKET> --unreviewed --branch=$(git branch --show-current)
    ```
 
 2. For each chunk (no cap — the human controls pace with "stop"):
@@ -52,7 +52,7 @@ Do NOT give up quickly. Follow this discovery chain:
       - Capture the diff using the helper command (handles multi-commit chunks,
         file scoping, and all edge cases automatically):
         ```bash
-        diff_output=$(mta-context.sh chunk-diff <TICKET> "<summary>")
+        diff_output=$(mta-engine chunk-diff <TICKET> "<summary>")
         ```
       - Then output the diff as markdown text using ````diff` fenced blocks — one
         per file. Do NOT display git show output directly in a tool result (it
@@ -78,12 +78,12 @@ Do NOT give up quickly. Follow this discovery chain:
 
    e. Mark reviewed when appropriate:
       ```bash
-      mta-context.sh review-chunk <TICKET> "<summary>"
+      mta-engine review-chunk <TICKET> "<summary>"
       ```
 
 3. After the walkthrough (or on "stop"), show updated debt:
    ```bash
-   mta-context.sh debt <TICKET>
+   mta-engine debt <TICKET>
    ```
 
 ## Output Format

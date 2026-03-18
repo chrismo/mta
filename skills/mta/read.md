@@ -17,18 +17,18 @@ See what other Claude sessions have done on a coordinated ticket.
 If ticket is omitted:
 1. Use ticket from earlier `/mta:join` in this session
 2. Or try to detect from branch name (same logic as join)
-3. Or list all contexts: `mta-context.sh list-contexts`
+3. Or list all contexts: `mta-engine list-contexts`
 
 ## What This Does
 
 1. Display context status:
    ```bash
-   mta-context.sh status <TICKET>
+   mta-engine status <TICKET>
    ```
 
 2. Check cognitive debt:
    ```bash
-   mta-context.sh debt <TICKET>
+   mta-engine debt <TICKET>
    ```
 
 3. Check git status on relevant files:
@@ -88,20 +88,20 @@ For more specific queries:
 
 ```bash
 # Just decisions
-mta-context.sh list-decisions <TICKET>
+mta-engine list-decisions <TICKET>
 
 # Just tasks
-mta-context.sh list-tasks <TICKET> --pending
+mta-engine list-tasks <TICKET> --pending
 
 # Just blockers
-mta-context.sh list-blockers --unresolved
+mta-engine list-blockers --unresolved
 
 # Active sessions
-mta-context.sh list-sessions <TICKET>
+mta-engine list-sessions <TICKET>
 
 # Cognitive debt
-mta-context.sh debt <TICKET>
+mta-engine debt <TICKET>
 
 # Unreviewed chunks
-mta-context.sh list-chunks <TICKET> --unreviewed
+mta-engine list-chunks <TICKET> --unreviewed
 ```

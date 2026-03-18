@@ -33,7 +33,7 @@ Example: `/mtm:slot PROJ-1714`
 
 3. **Check for existing context**:
    ```bash
-   mta-context.sh get-context <TICKET>
+   mta-engine get-context <TICKET>
    ```
    - Note if context already exists
 

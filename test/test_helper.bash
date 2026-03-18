@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# test_helper.bash - Common setup/teardown for mta-context tests
+# test_helper.bash - Common setup/teardown for mta-engine tests
 
 # Path to the script under test
-export MTA_CONTEXT="${BATS_TEST_DIRNAME}/../bin/mta-context.sh"
+export MTA_CONTEXT="${BATS_TEST_DIRNAME}/../bin/mta-engine"
 
 # Temporary test directory - isolated per test run
 export TEST_CONTEXTS_DIR=""
@@ -20,7 +20,7 @@ setup() {
 
   # Ensure the script exists and is executable
   if [[ ! -x "$MTA_CONTEXT" ]]; then
-    skip "mta-context.sh not found or not executable"
+    skip "mta-engine not found or not executable"
   fi
 }
 
@@ -38,7 +38,7 @@ teardown() {
   fi
 }
 
-# Helper: run mta-context.sh with test environment
+# Helper: run mta-engine with test environment
 mta() {
   "$MTA_CONTEXT" "$@"
 }

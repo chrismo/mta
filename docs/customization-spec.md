@@ -83,8 +83,8 @@ allowed-tools: Bash
 Given a Jira ticket ID (e.g., PROJ-123):
 
 1. Fetch ticket details: `jira-cli issue view PROJ-123 --plain`
-2. Check for an existing MTA context: `mta-context.sh get-context PROJ-123`
-3. If no context exists, create one: `mta-context.sh create-context PROJ-123`
+2. Check for an existing MTA context: `mta-engine get-context PROJ-123`
+3. If no context exists, create one: `mta-engine create-context PROJ-123`
 4. Find an available worktree and output a `claude-slot` command.
 ```
 
@@ -92,7 +92,7 @@ Good candidates: `slot` (ticket system dependent), `dupe` (environment dependent
 
 ### 3. Extend: New Skills Using Core Infrastructure
 
-Users can write entirely new skills that call `mta-context.sh` directly.
+Users can write entirely new skills that call `mta-engine` directly.
 
 **Example: weekly summary**
 
@@ -106,7 +106,7 @@ allowed-tools: Bash
 
 Generate a weekly summary:
 1. List all contexts active in the past 7 days.
-2. For each, run `mta-context.sh status <TICKET>`.
+2. For each, run `mta-engine status <TICKET>`.
 3. Summarize decisions made, tasks completed, and open blockers.
 ```
 
@@ -122,8 +122,8 @@ To support these patterns well, core skills should:
    unavailable. This makes core skills useful even without the full
    environment.
 
-3. **Keep `mta-context.sh` as the stable interface.** Wrapper skills and
-   extensions should call `mta-context.sh` subcommands, not poke at `.sup`
+3. **Keep `mta-engine` as the stable interface.** Wrapper skills and
+   extensions should call `mta-engine` subcommands, not poke at `.sup`
    files directly. The CLI is the contract.
 
 4. **Document what each skill provides.** Wrapper authors need to know what

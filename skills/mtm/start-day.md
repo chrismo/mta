@@ -20,27 +20,27 @@ Full overview of all coordinated work - use this to plan your day.
 
 2. List all active contexts:
    ```bash
-   mta-context.sh list-contexts
+   mta-engine list-contexts
    ```
 
 3. Get full status for each context:
    ```bash
-   mta-context.sh status <ticket>
+   mta-engine status <ticket>
    ```
 
 4. List all sessions to see which worktrees are linked:
    ```bash
-   mta-context.sh list-sessions
+   mta-engine list-sessions
    ```
 
 5. Check for unresolved blockers:
    ```bash
-   mta-context.sh list-blockers --unresolved
+   mta-engine list-blockers --unresolved
    ```
 
 6. Check cognitive debt across all contexts:
    ```bash
-   mta-context.sh debt
+   mta-engine debt
    ```
 
 7. Correlate: which conversations map to which contexts

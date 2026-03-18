@@ -25,8 +25,8 @@ Do NOT give up quickly. Follow this discovery chain:
 2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
 3. **Search contexts**:
    ```bash
-   mta-context.sh get-context <TICKET>
-   mta-context.sh list-contexts
+   mta-engine get-context <TICKET>
+   mta-engine list-contexts
    ```
 4. **If context found**: Proceed with the update — treat it as if you joined.
    Re-derive your session identifier from the scratchpad path and worktree name.
@@ -50,19 +50,19 @@ if you genuinely can't determine which ticket this session is working on.
 
 4. Record decisions:
    ```bash
-   mta-context.sh add-decision <TICKET> "<decision text>"
+   mta-engine add-decision <TICKET> "<decision text>"
    ```
    Run once for each significant decision/change.
 
 5. Record outstanding tasks:
    ```bash
-   mta-context.sh add-task <TICKET> "<task description>"
+   mta-engine add-task <TICKET> "<task description>"
    ```
    Run for any pending work that needs to be picked up.
 
 6. Record any blockers:
    ```bash
-   mta-context.sh add-blocker <TICKET> "<blocker description>"
+   mta-engine add-blocker <TICKET> "<blocker description>"
    ```
 
 7. Prompt: Should I commit and push? (if there are uncommitted changes)

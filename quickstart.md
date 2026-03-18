@@ -41,7 +41,7 @@
        │
        ▼
   ┌──────────┐
-  │   YOU    │   mta-context.sh debt PROJ-42
+  │   YOU    │   mta-engine debt PROJ-42
   │          │   ───────────────────────────▶  "3 unreviewed chunks,
   │  review  │                                  highest RISC: 8"
   │  time    │   /mta:review
@@ -65,7 +65,7 @@
 # Review what they built
 /mta:overview             # triage — what needs attention?
 /mta:review               # guided walkthrough of unreviewed chunks
-                          # (these call mta-context.sh debt and chunk commands under the hood)
+                          # (these call mta-engine debt and chunk commands under the hood)
 
 # End of day
 /mtm:eod

@@ -33,7 +33,7 @@ fi
 
 mkdir -p "$LOCAL_BIN"
 
-for bin_file in mta-context.sh claude-slot; do
+for bin_file in mta mta-engine claude-slot; do
   dest="$LOCAL_BIN/$bin_file"
   if [[ -L "$dest" ]] || [[ -f "$dest" ]]; then
     rm "$dest"
@@ -111,6 +111,6 @@ done
 
 echo ""
 echo "Done. Verify with:"
-echo "  which mta-context.sh"
+echo "  which mta-engine"
 echo "  ls -la ~/.claude/commands/mta"
 echo "  ls -la ~/.claude/commands/mtm"

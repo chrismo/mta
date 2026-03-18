@@ -29,7 +29,7 @@ If ticket is omitted, use the context from `/mta:join` or detect from branch.
 
 3. Leave the session with a note:
    ```bash
-   mta-context.sh leave <TICKET> <worktree>/<short-uuid> <status> "<brief summary>"
+   mta-engine leave <TICKET> <worktree>/<short-uuid> <status> "<brief summary>"
    ```
 
 4. Prompt: Should I commit and push? (if there are uncommitted changes)
@@ -58,7 +58,7 @@ Commit and push? [y/n]
 
 Check if there are other active sessions:
 ```bash
-mta-context.sh list-sessions <TICKET>
+mta-engine list-sessions <TICKET>
 ```
 
 If you're the last linked session:
@@ -75,5 +75,5 @@ Choice? [1/2]
 
 If archiving:
 ```bash
-mta-context.sh archive <TICKET>
+mta-engine archive <TICKET>
 ```

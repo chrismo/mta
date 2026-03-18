@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# mta-context.sh - MTA context management via SuperDB
+# mta-engine - MTA context management via SuperDB
 #
 # Manages multi-ticket assistance context storage using .sup files.
 # See: ai-agents/claude/skills/mta/sup-refactor.md for spec.
 #
-# Usage: mta-context.sh <command> [args]
+# Usage: mta-engine <command> [args]
 
 set -euo pipefail
 
@@ -178,7 +178,7 @@ cmd_create_context() {
   local title="${2:-}"
 
   if [[ -z "$ticket" || -z "$title" ]]; then
-    echo "Usage: mta-context.sh create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]" >&2
+    echo "Usage: mta-engine create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]" >&2
     exit 1
   fi
 
@@ -228,7 +228,7 @@ cmd_list_contexts() {
 cmd_get_context() {
   local ticket="${1:-}"
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh get-context <ticket>" >&2
+    echo "Usage: mta-engine get-context <ticket>" >&2
     exit 1
   fi
 
@@ -264,7 +264,7 @@ cmd_join() {
   local session_id="${2:-}"
 
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh join <ticket> [session-id]" >&2
+    echo "Usage: mta-engine join <ticket> [session-id]" >&2
     exit 1
   fi
 
@@ -305,7 +305,7 @@ cmd_leave() {
   local note="${4:-}"
 
   if [[ -z "$ticket" || -z "$session_id" || -z "$status" ]]; then
-    echo "Usage: mta-context.sh leave <ticket> <session-id> <status> [note]" >&2
+    echo "Usage: mta-engine leave <ticket> <session-id> <status> [note]" >&2
     exit 1
   fi
 
@@ -382,7 +382,7 @@ cmd_add_decision() {
   local text="${2:-}"
 
   if [[ -z "$ticket" || -z "$text" ]]; then
-    echo "Usage: mta-context.sh add-decision <ticket> <text>" >&2
+    echo "Usage: mta-engine add-decision <ticket> <text>" >&2
     exit 1
   fi
 
@@ -404,7 +404,7 @@ cmd_list_decisions() {
   done
 
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh list-decisions <ticket> [--format=json|csv|table]" >&2
+    echo "Usage: mta-engine list-decisions <ticket> [--format=json|csv|table]" >&2
     exit 1
   fi
 
@@ -423,7 +423,7 @@ cmd_add_task() {
   local text="${2:-}"
 
   if [[ -z "$ticket" || -z "$text" ]]; then
-    echo "Usage: mta-context.sh add-task <ticket> <text>" >&2
+    echo "Usage: mta-engine add-task <ticket> <text>" >&2
     exit 1
   fi
 
@@ -439,7 +439,7 @@ cmd_complete_task() {
   local pattern="${2:-}"
 
   if [[ -z "$ticket" || -z "$pattern" ]]; then
-    echo "Usage: mta-context.sh complete-task <ticket> <task-text-pattern>" >&2
+    echo "Usage: mta-engine complete-task <ticket> <task-text-pattern>" >&2
     exit 1
   fi
 
@@ -510,7 +510,7 @@ cmd_add_blocker() {
   local text="${2:-}"
 
   if [[ -z "$ticket" || -z "$text" ]]; then
-    echo "Usage: mta-context.sh add-blocker <ticket> <text>" >&2
+    echo "Usage: mta-engine add-blocker <ticket> <text>" >&2
     exit 1
   fi
 
@@ -526,7 +526,7 @@ cmd_resolve_blocker() {
   local pattern="${2:-}"
 
   if [[ -z "$ticket" || -z "$pattern" ]]; then
-    echo "Usage: mta-context.sh resolve-blocker <ticket> <blocker-text-pattern>" >&2
+    echo "Usage: mta-engine resolve-blocker <ticket> <blocker-text-pattern>" >&2
     exit 1
   fi
 
@@ -622,7 +622,7 @@ cmd_archive() {
   local ticket="${1:-}"
 
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh archive <ticket>" >&2
+    echo "Usage: mta-engine archive <ticket>" >&2
     exit 1
   fi
 
@@ -665,7 +665,7 @@ cmd_unarchive() {
   local ticket="${1:-}"
 
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh unarchive <ticket>" >&2
+    echo "Usage: mta-engine unarchive <ticket>" >&2
     exit 1
   fi
 
@@ -1081,7 +1081,7 @@ cmd_import() {
   local md_file="${1:-}"
 
   if [[ -z "$md_file" ]]; then
-    echo "Usage: mta-context.sh import <context.md>" >&2
+    echo "Usage: mta-engine import <context.md>" >&2
     echo "  Import an old markdown context file into SuperDB." >&2
     echo "  Looks in \$MTA_CONTEXTS_DIR (or ~/.claude/contexts/) by default." >&2
     exit 1
@@ -1217,7 +1217,7 @@ cmd_add_chunk() {
   local risc="${4:-}"
 
   if [[ -z "$ticket" || -z "$commit" || -z "$summary" || -z "$risc" ]]; then
-    echo "Usage: mta-context.sh add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]" >&2
+    echo "Usage: mta-engine add-chunk <ticket> <commit> <summary> <risc> [--files=...] [--lines=...] [--risc-reason=...]" >&2
     exit 1
   fi
 
@@ -1302,7 +1302,7 @@ cmd_list_chunks() {
   done
 
   if [[ -z "$ticket" ]]; then
-    echo "Usage: mta-context.sh list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]" >&2
+    echo "Usage: mta-engine list-chunks <ticket> [--unreviewed] [--branch=...] [--format=json|csv|commits|table]" >&2
     exit 1
   fi
 
@@ -1327,7 +1327,7 @@ cmd_review_chunk() {
   local pattern="${2:-}"
 
   if [[ -z "$ticket" || -z "$pattern" ]]; then
-    echo "Usage: mta-context.sh review-chunk <ticket> <summary-pattern>" >&2
+    echo "Usage: mta-engine review-chunk <ticket> <summary-pattern>" >&2
     exit 1
   fi
 
@@ -1371,7 +1371,7 @@ cmd_chunk_diff() {
   local pattern="${2:-}"
 
   if [[ -z "$ticket" || -z "$pattern" ]]; then
-    echo "Usage: mta-context.sh chunk-diff <ticket> <summary-pattern>" >&2
+    echo "Usage: mta-engine chunk-diff <ticket> <summary-pattern>" >&2
     exit 1
   fi
 
@@ -1437,7 +1437,7 @@ cmd_update_chunk() {
   local pattern="${2:-}"
 
   if [[ -z "$ticket" || -z "$pattern" ]]; then
-    echo "Usage: mta-context.sh update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]" >&2
+    echo "Usage: mta-engine update-chunk <ticket> <summary-pattern> [--risc=N] [--summary=...] [--files=...] [--lines=...] [--risc-reason=...] [--branch=...]" >&2
     exit 1
   fi
 
@@ -1568,7 +1568,7 @@ cmd_delete_chunk() {
   local pattern="${2:-}"
 
   if [[ -z "$ticket" || -z "$pattern" ]]; then
-    echo "Usage: mta-context.sh delete-chunk <ticket> <summary-pattern>" >&2
+    echo "Usage: mta-engine delete-chunk <ticket> <summary-pattern>" >&2
     exit 1
   fi
 
@@ -1682,9 +1682,9 @@ cmd_debt() {
 
 cmd_help() {
   less -FX <<EOF
-mta-context.sh - MTA context management via SuperDB
+mta-engine - MTA context management via SuperDB
 
-Usage: mta-context.sh <command> [args]
+Usage: mta-engine <command> [args]
 
 Context Management:
   create-context <ticket> <title> [--ticket-url=...] [--branch=...] [--worktree=...]
@@ -1775,7 +1775,7 @@ main() {
     help|--help|-h) cmd_help ;;
     *)
       echo "Unknown command: $cmd" >&2
-      echo "Run 'mta-context.sh help' for usage." >&2
+      echo "Run 'mta-engine help' for usage." >&2
       exit 1
       ;;
   esac
