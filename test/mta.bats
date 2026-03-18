@@ -47,6 +47,21 @@ teardown() {
   [[ "$output" == *'claude-slot /tmp/myproject /mta:join PROJ-789'* ]]
 }
 
+@test "mta interactive picks context via grdy+fzf" {
+  if ! command -v grdy &>/dev/null || ! command -v fzf &>/dev/null; then
+    skip "grdy or fzf not installed"
+  fi
+
+  "$MTA_ENGINE" create-context PROJ-100 "First ticket"
+  "$MTA_ENGINE" create-context PROJ-200 "Second ticket"
+
+  # Use fzf --filter for non-interactive selection (matches "First")
+  export MTA_FZF_CMD="fzf --filter=First"
+  run "$MTA_BIN"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *'claude /mta:join PROJ-100'* ]]
+}
+
 @test "mta with no contexts shows error" {
   # No fzf interaction possible in test, but with no contexts it should error
   run "$MTA_BIN"

@@ -8,6 +8,7 @@
 #
 # Environment:
 #   MTA_DRY_RUN=1          Print the command instead of executing (for testing)
+#   MTA_FZF_CMD            Override fzf command (for testing, e.g. "fzf --filter=X")
 
 set -euo pipefail
 
@@ -58,7 +59,8 @@ if [[ $# -eq 0 ]]; then
   # Header is 3 lines (top border, column names, separator), footer is 1 line (bottom border)
   # Feed data rows to fzf, show the column header as fzf header
   header=$(echo "$table" | head -n 3)
-  pick=$(echo "$table" | tail -n +4 | head -n -1 | fzf --header="$header" --prompt="Pick context: ")
+  fzf_cmd="${MTA_FZF_CMD:-fzf --header="$header" --prompt="Pick context: "}"
+  pick=$(echo "$table" | tail -n +4 | sed '$d' | $fzf_cmd)
   # Extract ticket from first column: │ TICKET │ ... │
   ticket=$(echo "$pick" | awk -F'│' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2}')
   run_or_print claude "/mta:join ${ticket}"
