@@ -74,3 +74,24 @@ teardown() {
   [[ "$status" -ne 0 ]]
   [[ "$output" == *"Usage"* ]]
 }
+
+@test "mta help shows mta-engine help" {
+  run "$MTA_BIN" help
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *"mta-engine"* ]]
+  [[ "$output" == *"command"* ]]
+  # Should NOT create a context called "help"
+  [[ ! -f "$TEST_CONTEXTS_DIR/contexts.sup" ]] || ! grep -q 'ticket:"help"' "$TEST_CONTEXTS_DIR/contexts.sup"
+}
+
+@test "mta --help shows mta-engine help" {
+  run "$MTA_BIN" --help
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *"mta-engine"* ]]
+}
+
+@test "mta -h shows mta-engine help" {
+  run "$MTA_BIN" -h
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *"mta-engine"* ]]
+}

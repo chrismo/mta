@@ -33,6 +33,13 @@ run_or_print() {
   fi
 }
 
+case "${1:-}" in
+  help|--help|-h)
+    "$ENGINE" help
+    exit 0
+    ;;
+esac
+
 if [[ $# -gt 2 ]]; then
   echo "Usage: mta [<ticket> [<working-dir>]]" >&2
   exit 1
