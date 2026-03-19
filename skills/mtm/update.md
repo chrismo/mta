@@ -41,9 +41,14 @@ Lightweight mid-day check of coordinated work and today's activity.
    mta-engine debt
    ```
 
-6. Run `work-context conversations 0` (today only) for quick session overview
+6. Show today's journal entries for continuity:
+   ```bash
+   mta-engine journal --today --format=json
+   ```
 
-7. Quick PR check from `work-context data 0`:
+7. Run `work-context conversations 0` (today only) for quick session overview
+
+8. Quick PR check from `work-context data 0`:
    - Only flag PRs needing immediate action (approved, changes requested)
    - Skip the full PR breakdown (that's for start-day)
 
@@ -53,8 +58,8 @@ Lightweight mid-day check of coordinated work and today's activity.
 ## Quick Status
 
 ### Active Coordinations
-- **PROJ-1641**: 2 active sessions | no blockers | debt: 5 unreviewed (3 high-RISC)
-- **INCIDENT-outage**: 1 session | BLOCKING | debt: 0
+- **PROJ-1641** [priority: high]: 2 active sessions | no blockers | debt: 5 unreviewed (3 high-RISC)
+- **INCIDENT-outage** [priority: urgent]: 1 session | BLOCKING | debt: 0
 
 ### Blockers
 - INCIDENT-outage blocking PROJ-1641

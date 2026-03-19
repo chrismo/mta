@@ -224,7 +224,13 @@ cmd_list_contexts() {
   require_super
   # TODO: Add last_activity timestamp to context records (bumped on any write for that ticket)
   #       so we can sort by most recently updated instead of created
-  super -j -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc | cut ticket, title" | format_output "$format"
+  local base_query="from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc"
+  local result
+  if result=$(super -j -c "$base_query | put priority:=missing(priority) ? null : priority | cut ticket, title, priority" 2>/dev/null); then
+    echo "$result" | format_output "$format"
+  else
+    super -j -c "$base_query | cut ticket, title" | format_output "$format"
+  fi
 }
 
 cmd_get_context() {
@@ -1682,6 +1688,142 @@ cmd_debt() {
   fi
 }
 
+cmd_journal() {
+  local format="" mode="" limit_n=10 text=""
+  local -a positional=()
+
+  for arg in "$@"; do
+    case "$arg" in
+      --format=*) format="${arg#*=}" ;;
+      --today) mode="today" ;;
+      --list) mode="list" ;;
+      --clear|--help) ;; # ignore irrelevant flags
+      *)
+        if [[ "$mode" == "list" && "$arg" =~ ^[0-9]+$ && ${#positional[@]} -eq 0 ]]; then
+          limit_n="$arg"
+        else
+          positional+=("$arg")
+        fi
+        ;;
+    esac
+  done
+
+  ensure_dir
+
+  # If positional text provided and no query mode flag, it's a write
+  if [[ ${#positional[@]} -gt 0 && -z "$mode" ]]; then
+    text="${positional[*]}"
+    local escaped
+    escaped=$(escape_sup_text "$text")
+    local record="{ts:\"$(now)\",text:\"$escaped\"}"
+    append_record "journal.sup" "$record"
+    echo "Journal entry added."
+    return 0
+  fi
+
+  # Query mode
+  local journal_file="$CONTEXTS_DIR/journal.sup"
+  if [[ ! -f "$journal_file" ]]; then
+    echo "No journal entries."
+    return 0
+  fi
+
+  require_super
+
+  local query
+  if [[ "$mode" == "today" ]]; then
+    local today_start
+    today_start=$(date -u +"%Y-%m-%dT00:00:00Z")
+    query="from '$journal_file' | where ts >= '$today_start' | sort ts desc"
+  else
+    # default and --list both show last N
+    query="from '$journal_file' | sort ts desc | head $limit_n"
+  fi
+
+  super -j -c "$query" | format_output "$format"
+}
+
+cmd_set_priority() {
+  local ticket="${1:-}"
+  if [[ -z "$ticket" ]]; then
+    echo "Usage: mta-engine set-priority <ticket> <priority-text>" >&2
+    exit 1
+  fi
+  shift
+
+  local priority="" clear=false
+  local -a positional=()
+  for arg in "$@"; do
+    case "$arg" in
+      --clear) clear=true ;;
+      --format=*) ;; # ignore
+      *) positional+=("$arg") ;;
+    esac
+  done
+
+  if [[ "$clear" == "false" && ${#positional[@]} -eq 0 ]]; then
+    echo "Usage: mta-engine set-priority <ticket> <priority-text|--clear>" >&2
+    exit 1
+  fi
+
+  if [[ "$clear" == "false" ]]; then
+    priority="${positional[*]}"
+  fi
+
+  ensure_dir
+
+  local contexts_file="$CONTEXTS_DIR/contexts.sup"
+  if [[ ! -f "$contexts_file" ]]; then
+    echo "Error: Context not found: $ticket" >&2
+    exit 1
+  fi
+
+  require_super
+
+  local temp_file
+  temp_file=$(mktemp)
+  local found=false
+
+  while IFS= read -r line; do
+    if [[ "$line" == *"ticket:\"$ticket\""* ]]; then
+      # Check if archived
+      if [[ "$line" == *"archived_at:null"* ]]; then
+        local new_line
+        if [[ "$clear" == "true" ]]; then
+          new_line=$(echo "$line" | super -s -c "put priority:=null" -)
+        else
+          local escaped
+          escaped=$(escape_super_val "$priority")
+          new_line=$(echo "$line" | super -s -c "put priority:='$escaped'" -)
+        fi
+        echo "$new_line" >> "$temp_file"
+        found=true
+      else
+        echo "$line" >> "$temp_file"
+        # Found but archived
+        rm "$temp_file"
+        echo "Error: Context is archived: $ticket" >&2
+        exit 1
+      fi
+    else
+      echo "$line" >> "$temp_file"
+    fi
+  done < "$contexts_file"
+
+  if [[ "$found" == "false" ]]; then
+    rm "$temp_file"
+    echo "Error: Context not found: $ticket" >&2
+    exit 1
+  fi
+
+  mv "$temp_file" "$contexts_file"
+  if [[ "$clear" == "true" ]]; then
+    echo "Priority cleared: $ticket"
+  else
+    echo "Priority set: $ticket"
+  fi
+}
+
 cmd_help() {
   less -FX <<EOF
 mta-engine - MTA context management via SuperDB
@@ -1725,6 +1867,14 @@ Chunks (Cognitive Debt):
             Component update: [--reach=N] [--irrev=N] [--subtle=N] [--conseq=N] (recomputes risc)
   delete-chunk <ticket> <summary-pattern>
   debt [ticket] [--branch=...]       Show cognitive debt (unreviewed chunks)
+
+Planner:
+  journal <text>                   Add a journal entry
+  journal [--format=json|csv|table]  Show last 10 entries (default)
+  journal --today [--format=...]   Show today's entries
+  journal --list [N] [--format=...]  Show last N entries (default 10)
+  set-priority <ticket> <text>     Set priority on a context
+  set-priority <ticket> --clear    Clear priority
 
 Status & Archive:
   status [ticket]
@@ -1774,6 +1924,8 @@ main() {
     archive) cmd_archive "$@" ;;
     unarchive) cmd_unarchive "$@" ;;
     import) cmd_import "$@" ;;
+    journal) cmd_journal "$@" ;;
+    set-priority) cmd_set_priority "$@" ;;
     help|--help|-h) cmd_help ;;
     *)
       echo "Unknown command: $cmd" >&2

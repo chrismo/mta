@@ -37,10 +37,19 @@ When the goal is achieved, archive the context.
    mta-engine create-context <GOAL-NAME> "<title>" [--ticket-url=...] [--branch=...] [--worktree=...]
    ```
 
+3. **Ask about priority** — offer to set an initial priority for the new context:
+   - Ask: "Set a priority? (e.g. 'high', 'urgent - launch blocker', or skip)"
+   - If the user provides one:
+     ```bash
+     mta-engine set-priority <GOAL-NAME> "<priority text>"
+     ```
+   - If declined, skip. Priority can always be set later.
+
 ## Output
 
 ```
 Created shared context for <goal-name>.
+Priority: <priority> (or: none set)
 
 Workers can now:
 - /mta:join <goal-name> - to register with this coordination
@@ -53,3 +62,4 @@ Workers can now:
 
 If no title is provided, ask the user for a brief description.
 Optionally include `--ticket-url` to link to the ticket tracker.
+Priority is free-form text — use whatever labeling makes sense for the effort.

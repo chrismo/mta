@@ -48,12 +48,18 @@ Wind down coordinated work across Claude sessions.
    ```
    Flag contexts where debt grew today (compare chunk timestamps to today's date).
 
-6. **Review open PRs** from `work-context data 7`:
+6. **Add EOD journal entry** — ask the user for a brief summary of the day, then record it:
+   ```bash
+   mta-engine journal "EOD: <user's summary>"
+   ```
+   If the user declines, skip. The journal captures cross-cutting observations that don't belong to any single ticket.
+
+7. **Review open PRs** from `work-context data 7`:
    - Flag approved PRs not yet merged (could merge before EOD)
    - Flag PRs with changes requested (need follow-up tomorrow)
    - Note any PRs updated today that are still awaiting review
 
-7. **Output summary**:
+8. **Output summary**:
    ```
    ## End of Day
 
@@ -73,6 +79,10 @@ Wind down coordinated work across Claude sessions.
 
    ### Blockers
    - INCIDENT-outage: unresolved
+
+   ### Journal
+   - Recorded: "EOD: Focused on auth migration, INCIDENT-outage resolved mid-afternoon"
+   - (or: Skipped journal entry)
 
    ### Parked (no action needed)
    - ds9, ds3

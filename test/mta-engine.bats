@@ -1860,3 +1860,188 @@ cleanup_git_repo() {
   [[ "$output" == *"Write tests"* ]]
   [[ "$output" != *"─"* ]]
 }
+
+# ==============================================================================
+# Planner: Journal
+# ==============================================================================
+
+@test "journal adds entry to journal.sup" {
+  run mta journal "Incident response consumed the day"
+  assert_success
+  assert_file_exists "journal.sup"
+  assert_file_contains "journal.sup" "Incident response consumed the day"
+}
+
+@test "journal entry has ts and text fields" {
+  run mta journal "Planning meeting notes"
+  assert_success
+  assert_file_contains "journal.sup" 'ts:"20'
+  assert_file_contains "journal.sup" 'text:"Planning meeting notes"'
+}
+
+@test "journal escapes special characters in text" {
+  run mta journal 'He said "hello" and used a \backslash'
+  assert_success
+  # Should not break the sup file - entry should be queryable
+  assert_file_exists "journal.sup"
+  # The escaped text should be in the file
+  assert_file_contains "journal.sup" 'text:"He said'
+}
+
+@test "journal --list shows entries in reverse chronological order" {
+  require_super
+  # Write entries with known timestamps
+  echo '{ts:"2026-03-19T10:00:00Z",text:"First entry"}' > "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2026-03-19T11:00:00Z",text:"Second entry"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2026-03-19T12:00:00Z",text:"Third entry"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+
+  run mta journal --list --format=json
+  assert_success
+  # In JSON output, Third should appear before First
+  local third_pos first_pos
+  third_pos=$(echo "$output" | grep -n "Third" | head -1 | cut -d: -f1)
+  first_pos=$(echo "$output" | grep -n "First" | head -1 | cut -d: -f1)
+  [[ "$third_pos" -lt "$first_pos" ]]
+}
+
+@test "journal --list N limits to N entries" {
+  require_super
+  echo '{ts:"2026-03-19T10:00:00Z",text:"Entry one"}' > "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2026-03-19T11:00:00Z",text:"Entry two"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2026-03-19T12:00:00Z",text:"Entry three"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+
+  run mta journal --list 2 --format=json
+  assert_success
+  [[ "$output" == *"Entry three"* ]]
+  [[ "$output" == *"Entry two"* ]]
+  [[ "$output" != *"Entry one"* ]]
+}
+
+@test "journal --list defaults to 10" {
+  require_super
+  # Create 12 entries
+  for i in $(seq -w 1 12); do
+    echo "{ts:\"2026-03-19T${i}:00:00Z\",text:\"Entry $i\"}" >> "$TEST_CONTEXTS_DIR/journal.sup"
+  done
+
+  run mta journal --list --format=json
+  assert_success
+  # Should have entries 03-12, not 01-02
+  [[ "$output" == *"Entry 12"* ]]
+  [[ "$output" == *"Entry 03"* ]]
+  [[ "$output" != *"Entry 01"* ]]
+  [[ "$output" != *"Entry 02"* ]]
+}
+
+@test "journal --today shows only today entries" {
+  require_super
+  local today
+  today=$(date -u +"%Y-%m-%d")
+  echo "{ts:\"${today}T10:00:00Z\",text:\"Today entry\"}" > "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2025-01-01T10:00:00Z",text:"Old entry"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+
+  run mta journal --today --format=json
+  assert_success
+  [[ "$output" == *"Today entry"* ]]
+  [[ "$output" != *"Old entry"* ]]
+}
+
+@test "journal --today shows nothing when no entries today" {
+  require_super
+  echo '{ts:"2025-01-01T10:00:00Z",text:"Old entry"}' > "$TEST_CONTEXTS_DIR/journal.sup"
+
+  run mta journal --today --format=json
+  assert_success
+  [[ "$output" != *"Old entry"* ]]
+}
+
+@test "journal with no args and no entries shows empty message" {
+  run mta journal
+  assert_success
+  [[ "$output" == *"No journal entries"* ]]
+}
+
+@test "journal with no args shows last 10 entries" {
+  require_super
+  for i in $(seq -w 1 12); do
+    echo "{ts:\"2026-03-19T${i}:00:00Z\",text:\"Entry $i\"}" >> "$TEST_CONTEXTS_DIR/journal.sup"
+  done
+
+  run mta journal --format=json
+  assert_success
+  [[ "$output" == *"Entry 12"* ]]
+  [[ "$output" == *"Entry 03"* ]]
+  [[ "$output" != *"Entry 01"* ]]
+}
+
+# ==============================================================================
+# Planner: Priority
+# ==============================================================================
+
+@test "set-priority sets priority on existing context" {
+  require_super
+  mta create-context PROJ-100 "Auth upgrade"
+
+  run mta set-priority PROJ-100 "high"
+  assert_success
+  assert_file_contains "contexts.sup" 'priority:"high"'
+}
+
+@test "set-priority errors on non-existent ticket" {
+  run mta set-priority NOPE-999 "high"
+  assert_failure
+  [[ "$output" == *"not found"* ]]
+}
+
+@test "set-priority errors on archived ticket" {
+  require_super
+  mta create-context PROJ-100 "Auth upgrade"
+  mta archive PROJ-100
+
+  run mta set-priority PROJ-100 "high"
+  assert_failure
+  [[ "$output" == *"archived"* ]]
+}
+
+@test "set-priority --clear removes priority" {
+  require_super
+  mta create-context PROJ-100 "Auth upgrade"
+  mta set-priority PROJ-100 "high"
+  assert_file_contains "contexts.sup" 'priority:"high"'
+
+  run mta set-priority PROJ-100 --clear
+  assert_success
+  assert_file_not_contains "contexts.sup" 'priority:"high"'
+}
+
+@test "set-priority overwrites existing priority" {
+  require_super
+  mta create-context PROJ-100 "Auth upgrade"
+  mta set-priority PROJ-100 "low"
+  assert_file_contains "contexts.sup" 'priority:"low"'
+
+  run mta set-priority PROJ-100 "critical"
+  assert_success
+  assert_file_contains "contexts.sup" 'priority:"critical"'
+  assert_file_not_contains "contexts.sup" 'priority:"low"'
+}
+
+@test "list-contexts shows priority field" {
+  require_super
+  mta create-context PROJ-100 "Auth upgrade"
+  mta set-priority PROJ-100 "high"
+
+  run mta list-contexts --format=json
+  assert_success
+  [[ "$output" == *"priority"* ]]
+  [[ "$output" == *"high"* ]]
+}
+
+@test "set-priority with free-form text works" {
+  require_super
+  mta create-context PROJ-100 "Auth upgrade"
+
+  run mta set-priority PROJ-100 "urgent - stakeholder deadline Friday"
+  assert_success
+  assert_file_contains "contexts.sup" 'priority:"urgent - stakeholder deadline Friday"'
+}

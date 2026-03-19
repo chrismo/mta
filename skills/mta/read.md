@@ -47,6 +47,7 @@ If ticket is omitted:
 - Title: <title>
 - Branch: <branch>
 - Worktree: <worktree>
+- Priority: <priority> (or: none)
 
 ### Active Sessions
 - ds5/92e7df7e
