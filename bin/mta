@@ -35,7 +35,17 @@ run_or_print() {
 
 case "${1:-}" in
   help|--help|-h)
-    "$ENGINE" help
+    cat <<HELP
+mta - Launch Claude sessions on MTA contexts
+
+Usage:
+  mta                    Interactive picker (grdy+fzf) → claude /mta:join
+  mta <ticket>           Create context if needed → claude /mta:join <ticket>
+  mta <ticket> <wd>      Create context if needed → claude-slot <wd> /mta:join <ticket>
+
+For engine commands (journal, set-priority, status, etc.):
+  mta-engine help
+HELP
     exit 0
     ;;
 esac
