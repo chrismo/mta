@@ -222,6 +222,8 @@ cmd_list_contexts() {
     return 0
   fi
   require_super
+  # TODO: Add last_activity timestamp to context records (bumped on any write for that ticket)
+  #       so we can sort by most recently updated instead of created
   super -j -c "from '$CONTEXTS_DIR/contexts.sup' | where archived_at is null | sort created desc | cut ticket, title" | format_output "$format"
 }
 
