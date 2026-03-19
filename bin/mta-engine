@@ -2,7 +2,7 @@
 # mta-engine - MTA context management via SuperDB
 #
 # Manages multi-ticket assistance context storage using .sup files.
-# See: ai-agents/claude/skills/mta/sup-refactor.md for spec.
+# See: schema.md for spec.
 #
 # Usage: mta-engine <command> [args]
 
@@ -1868,11 +1868,13 @@ Chunks (Cognitive Debt):
   delete-chunk <ticket> <summary-pattern>
   debt [ticket] [--branch=...]       Show cognitive debt (unreviewed chunks)
 
-Planner:
+Journal:
   journal <text>                   Add a journal entry
   journal [--format=json|csv|table]  Show last 10 entries (default)
   journal --today [--format=...]   Show today's entries
   journal --list [N] [--format=...]  Show last N entries (default 10)
+
+Priority:
   set-priority <ticket> <text>     Set priority on a context
   set-priority <ticket> --clear    Clear priority
 

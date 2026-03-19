@@ -26,8 +26,8 @@ Location: `~/.claude/contexts/`
 ### contexts.sup
 The parent record for each coordination effort.
 ```
-{ticket:"PROJ-1641",title:"Upgrade auth service",created:"2026-01-27T16:32:00Z",ticket_url:"https://tracker.example.com/...",branch:"proj-101-...",worktree:"wt1"}
-{ticket:"PROJ-1670",title:"CI pipeline experiment",created:"2026-01-29T09:00:00Z",ticket_url:"...",branch:"...",worktree:"ds9"}
+{ticket:"PROJ-1641",title:"Upgrade auth service",created:"2026-01-27T16:32:00Z",archived_at:null,ticket_url:"https://tracker.example.com/...",branch:"proj-101-...",worktree:"wt1",priority:"high"}
+{ticket:"PROJ-1670",title:"CI pipeline experiment",created:"2026-01-29T09:00:00Z",archived_at:null,ticket_url:"...",branch:"...",worktree:"ds9"}
 ```
 
 ### sessions.sup
@@ -59,6 +59,13 @@ Active blockers (resolved ones can be marked).
 {ticket:"PROJ-1641",ts:"2026-01-27T17:30:00Z",text:"Dashboard metrics not appearing",resolved:"2026-01-27T18:10:00Z"}
 ```
 
+### journal.sup
+Manager journal — freeform timestamped notes not tied to any ticket.
+```
+{ts:"2026-03-19T14:00:00Z",text:"Incident response consumed the day"}
+{ts:"2026-03-19T09:15:00Z",text:"Reprioritizing PROJ-1641 after stakeholder call"}
+```
+
 ## Example Queries
 
 ```bash
@@ -83,6 +90,12 @@ super -c "from 'blockers.sup' | where resolved = null"
 
 # Recent decisions (last 24h)
 super -c "from 'decisions.sup' | where ts > '2026-01-28T00:00:00Z' | sort ts desc"
+
+# Today's journal entries
+super -c "from 'journal.sup' | where ts >= '2026-03-19T00:00:00Z' | sort ts desc"
+
+# Contexts with priority set
+super -c "from 'contexts.sup' | where archived_at is null and not missing(priority) and priority is not null"
 ```
 
 ## Script Interface
@@ -113,6 +126,16 @@ mta-engine list-tasks [ticket] [--pending]
 mta-engine add-blocker <ticket> <text>
 mta-engine resolve-blocker <ticket> <blocker-text-pattern>
 mta-engine list-blockers [--unresolved]
+
+# Journal
+mta-engine journal <text>            # add a journal entry
+mta-engine journal                   # show last 10 entries
+mta-engine journal --today           # today's entries only
+mta-engine journal --list [N]        # last N entries (default 10)
+
+# Priority
+mta-engine set-priority <ticket> <text>   # set priority on a context
+mta-engine set-priority <ticket> --clear  # clear priority
 
 # Status/reporting
 mta-engine status [ticket]           # formatted status for one or all

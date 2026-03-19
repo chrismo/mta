@@ -133,6 +133,27 @@ mta-engine debt [ticket] [--branch=...]    # Show cognitive debt summary
 RISC (1-10) = **R**each, **I**rreversibility, **S**ubtlety, **C**onsequence. Higher = needs more human attention.
 Component mode stores individual scores and computes `risc = min(R + I + S + C, 10)`.
 
+### Journal
+
+Cross-cutting notes for the manager — not tied to any single ticket.
+
+```bash
+mta-engine journal "Incident response consumed the day"
+mta-engine journal                          # Show last 10 entries
+mta-engine journal --today                  # Today's entries only
+mta-engine journal --list 5                 # Last N entries
+mta-engine journal --list --format=json     # Any query supports --format
+```
+
+### Priority
+
+Free-form priority text on context records.
+
+```bash
+mta-engine set-priority <ticket> "urgent - stakeholder deadline Friday"
+mta-engine set-priority <ticket> --clear
+```
+
 ### Status & Archive
 
 ```bash
@@ -158,7 +179,8 @@ Data is stored in `~/.claude/contexts/` as `.sup` files:
 ├── decisions.sup   # Decision log with timestamps
 ├── tasks.sup       # Outstanding tasks
 ├── blockers.sup    # Active blockers
-└── chunks.sup      # RISC-graded commit chunks (cognitive debt)
+├── chunks.sup      # RISC-graded commit chunks (cognitive debt)
+└── journal.sup     # Manager journal entries
 ```
 
 Override with `MTA_CONTEXTS_DIR` environment variable.
@@ -234,7 +256,7 @@ bats --jobs 8 test/work-context.bats
 
 ## Schema
 
-See [skills/sup-refactor.md](skills/sup-refactor.md) for the full schema specification.
+See [schema.md](schema.md) for the full schema specification.
 
 ## License
 
