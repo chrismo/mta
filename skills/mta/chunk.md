@@ -39,6 +39,16 @@ Do NOT give up quickly. Follow this discovery chain:
    ```
    Fall back to `master` if `main` doesn't exist.
 
+   **Working directly on main:** If the current branch IS main (or master), there's
+   no `main..HEAD` range. Instead, determine the commit range by:
+   - Check existing chunks for this ticket: `mta-engine list-chunks <TICKET> --format=commits`
+   - If chunks exist, find the most recent tracked commit and use it as the base:
+     `git log <most-recent-tracked-sha>..HEAD --oneline`
+   - If no chunks exist, scan recent history (`git log -20 --oneline`) and identify
+     commits contextually related to the current work/conversation — match by ticket
+     references, file overlap, commit message themes, or the user's stated goal
+   - The user may also pass a range hint like "last 5 commits" or "since yesterday"
+
 2. Get existing chunk commit SHAs:
    ```bash
    mta-engine list-chunks <TICKET> --format=commits

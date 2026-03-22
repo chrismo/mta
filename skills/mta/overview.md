@@ -54,6 +54,11 @@ Do NOT give up quickly. Follow this discovery chain:
    ```
    Fall back to `master` if `main` doesn't exist.
 
+   **Working directly on main:** If the current branch IS main (or master),
+   use existing chunk commits to find the range (most recent tracked SHA as base),
+   or if no chunks exist, scan recent history (`git log -20 --oneline`) and identify
+   commits contextually related to the current work/conversation.
+
    Count commits whose SHAs don't appear in any chunk's commit field
    (remember chunks can have comma-separated SHAs).
 
