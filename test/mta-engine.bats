@@ -1974,6 +1974,39 @@ cleanup_git_repo() {
   [[ "$output" != *"Entry 01"* ]]
 }
 
+@test "journal --date filters entries by specific date" {
+  require_super
+  echo '{ts:"2026-03-19T10:00:00Z",text:"March 19 entry"}' > "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2026-03-20T10:00:00Z",text:"March 20 entry"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2026-03-21T10:00:00Z",text:"March 21 entry"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+
+  run mta journal --date=2026-03-20 --format=json
+  assert_success
+  [[ "$output" == *"March 20 entry"* ]]
+  [[ "$output" != *"March 19 entry"* ]]
+  [[ "$output" != *"March 21 entry"* ]]
+}
+
+@test "journal --date does not create an entry" {
+  run mta journal --date=2026-03-23
+  assert_success
+  # Should NOT write --date=2026-03-23 as entry text
+  if [[ -f "$TEST_CONTEXTS_DIR/journal.sup" ]]; then
+    assert_file_not_contains "journal.sup" "date"
+  fi
+}
+
+@test "journal --help shows usage instead of treating as entry text" {
+  run mta journal --help
+  assert_success
+  [[ "$output" == *"Usage"* ]]
+  [[ "$output" == *"journal"* ]]
+  # Should NOT write --help as entry text
+  if [[ -f "$TEST_CONTEXTS_DIR/journal.sup" ]]; then
+    assert_file_not_contains "journal.sup" "help"
+  fi
+}
+
 # ==============================================================================
 # Priority
 # ==============================================================================

@@ -1689,15 +1689,24 @@ cmd_debt() {
 }
 
 cmd_journal() {
-  local format="" mode="" limit_n=10 text=""
+  local format="" mode="" limit_n=10 text="" filter_date=""
   local -a positional=()
 
   for arg in "$@"; do
     case "$arg" in
       --format=*) format="${arg#*=}" ;;
       --today) mode="today" ;;
+      --date=*) mode="date"; filter_date="${arg#*=}" ;;
       --list) mode="list" ;;
-      --clear|--help) ;; # ignore irrelevant flags
+      --help)
+        echo "Usage: mta-engine journal <text>              Add a journal entry"
+        echo "       mta-engine journal [--format=json|csv|table]  Show last 10 entries"
+        echo "       mta-engine journal --today [--format=...]     Show today's entries"
+        echo "       mta-engine journal --date=YYYY-MM-DD [--format=...]  Show entries for a date"
+        echo "       mta-engine journal --list [N] [--format=...]  Show last N entries (default 10)"
+        return 0
+        ;;
+      --clear) ;; # ignore irrelevant flags
       *)
         if [[ "$mode" == "list" && "$arg" =~ ^[0-9]+$ && ${#positional[@]} -eq 0 ]]; then
           limit_n="$arg"
@@ -1735,6 +1744,10 @@ cmd_journal() {
     local today_start
     today_start=$(date -u +"%Y-%m-%dT00:00:00Z")
     query="from '$journal_file' | where ts >= '$today_start' | sort ts desc"
+  elif [[ "$mode" == "date" ]]; then
+    local date_start="${filter_date}T00:00:00Z"
+    local date_end="${filter_date}T23:59:59Z"
+    query="from '$journal_file' | where ts >= '$date_start' and ts <= '$date_end' | sort ts desc"
   else
     # default and --list both show last N
     query="from '$journal_file' | sort ts desc | head $limit_n"
@@ -1872,6 +1885,7 @@ Journal:
   journal <text>                   Add a journal entry
   journal [--format=json|csv|table]  Show last 10 entries (default)
   journal --today [--format=...]   Show today's entries
+  journal --date=YYYY-MM-DD [--format=...]  Show entries for a specific date
   journal --list [N] [--format=...]  Show last N entries (default 10)
 
 Priority:
