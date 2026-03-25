@@ -1862,6 +1862,33 @@ cmd_set_priority() {
   fi
 }
 
+cmd_update() {
+  local ticket="${1:-}"
+  if [[ -z "$ticket" ]]; then
+    echo "Usage: mta-engine update <ticket> --decision|--task|--blocker \"text\"" >&2
+    exit 1
+  fi
+  shift
+
+  local flag="" text=""
+  for arg in "$@"; do
+    case "$arg" in
+      --decision|--task|--blocker) flag="$arg" ;;
+      *) text="$arg" ;;
+    esac
+  done
+
+  case "$flag" in
+    --decision) cmd_add_decision "$ticket" "$text" ;;
+    --task) cmd_add_task "$ticket" "$text" ;;
+    --blocker) cmd_add_blocker "$ticket" "$text" ;;
+    *)
+      echo "Usage: mta-engine update <ticket> --decision|--task|--blocker \"text\"" >&2
+      exit 1
+      ;;
+  esac
+}
+
 cmd_help() {
   less -FX <<EOF
 mta-engine - MTA context management via SuperDB
@@ -1918,6 +1945,11 @@ Priority:
   set-priority <ticket> <text>     Set priority on a context
   set-priority <ticket> --clear    Clear priority
 
+Update (shorthand):
+  update <ticket> --decision "text"  Add a decision (alias for add-decision)
+  update <ticket> --task "text"      Add a task (alias for add-task)
+  update <ticket> --blocker "text"   Add a blocker (alias for add-blocker)
+
 Status & Archive:
   status [ticket]
   archive <ticket>
@@ -1967,6 +1999,7 @@ main() {
     unarchive) cmd_unarchive "$@" ;;
     import) cmd_import "$@" ;;
     journal) cmd_journal "$@" ;;
+    update) cmd_update "$@" ;;
     set-priority) cmd_set_priority "$@" ;;
     help|--help|-h) cmd_help ;;
     *)

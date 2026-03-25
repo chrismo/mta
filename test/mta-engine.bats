@@ -2098,6 +2098,46 @@ cleanup_git_repo() {
   [[ "$output" == *"high"* ]]
 }
 
+# ==============================================================================
+# Update alias
+# ==============================================================================
+
+@test "update --decision delegates to add-decision" {
+  mta create-context PROJ-100 "Auth upgrade"
+
+  run mta update PROJ-100 --decision "Switched to bc for ceiling calc"
+  assert_success
+  assert_file_contains "decisions.sup" "Switched to bc for ceiling calc"
+}
+
+@test "update --task delegates to add-task" {
+  mta create-context PROJ-100 "Auth upgrade"
+
+  run mta update PROJ-100 --task "Add retry logic"
+  assert_success
+  assert_file_contains "tasks.sup" "Add retry logic"
+}
+
+@test "update --blocker delegates to add-blocker" {
+  mta create-context PROJ-100 "Auth upgrade"
+
+  run mta update PROJ-100 --blocker "Waiting on CI fix"
+  assert_success
+  assert_file_contains "blockers.sup" "Waiting on CI fix"
+}
+
+@test "update without flags shows usage" {
+  run mta update
+  assert_failure
+  [[ "$output" == *"Usage"* ]]
+}
+
+@test "update without recognized flag shows usage" {
+  run mta update PROJ-100
+  assert_failure
+  [[ "$output" == *"Usage"* ]]
+}
+
 @test "set-priority with free-form text works" {
   require_super
   mta create-context PROJ-100 "Auth upgrade"
