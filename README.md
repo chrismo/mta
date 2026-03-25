@@ -234,6 +234,7 @@ super --version
 - `/mtm:new-context` - Create a new shared context
 - `/mtm:archive` - Archive a completed context
 - `/mtm:slot` - Generate a claude-slot command for a ticket
+- `/mtm:journal` - View and add cross-cutting journal entries
 
 ### Other Tools
 - `/work-context` - Analyze current work context and recommend top priorities

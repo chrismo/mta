@@ -8,7 +8,7 @@ See [README.md](README.md) for full project docs, installation, usage, and schem
 - `skills/work-context.sh` - Work context script (worktrees, conversations, PRs). Installed as `work-context` in PATH.
 - `skills/work-context.md` - `/work-context` skill definition
 - `skills/mta/` - MTA worker skills (`/mta:join`, `/mta:read`, `/mta:update`, `/mta:leave`, `/mta:dupe`)
-- `skills/mtm/` - MTM manager skills (`/mtm:update`, `/mtm:start-day`, `/mtm:eod`, `/mtm:new-context`, `/mtm:archive`, `/mtm:slot`)
+- `skills/mtm/` - MTM manager skills (`/mtm:update`, `/mtm:start-day`, `/mtm:eod`, `/mtm:new-context`, `/mtm:archive`, `/mtm:slot`, `/mtm:journal`)
 
 ## Testing
 
