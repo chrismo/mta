@@ -2007,6 +2007,34 @@ cleanup_git_repo() {
   fi
 }
 
+@test "journal --delete removes entry by timestamp" {
+  echo '{ts:"2026-03-19T10:00:00Z",text:"Keep this"}' > "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2026-03-19T11:00:00Z",text:"Delete this"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+  echo '{ts:"2026-03-19T12:00:00Z",text:"Keep this too"}' >> "$TEST_CONTEXTS_DIR/journal.sup"
+
+  run mta journal --delete 2026-03-19T11:00:00Z
+  assert_success
+  [[ "$output" == *"Deleted"* ]]
+  assert_file_contains "journal.sup" "Keep this"
+  assert_file_contains "journal.sup" "Keep this too"
+  assert_file_not_contains "journal.sup" "Delete this"
+}
+
+@test "journal --delete with non-existent timestamp fails" {
+  echo '{ts:"2026-03-19T10:00:00Z",text:"Only entry"}' > "$TEST_CONTEXTS_DIR/journal.sup"
+
+  run mta journal --delete 2099-01-01T00:00:00Z
+  assert_failure
+  [[ "$output" == *"No journal entry"* ]]
+  assert_file_contains "journal.sup" "Only entry"
+}
+
+@test "journal --delete with no timestamp shows error" {
+  run mta journal --delete
+  assert_failure
+  [[ "$output" == *"Usage"* ]]
+}
+
 # ==============================================================================
 # Priority
 # ==============================================================================

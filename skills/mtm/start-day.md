@@ -43,9 +43,9 @@ Full overview of all coordinated work - use this to plan your day.
    mta-engine debt
    ```
 
-7. Review today's journal entries (cross-cutting notes, priorities, observations):
+7. Review recent journal entries (cross-cutting notes, priorities, observations):
    ```bash
-   mta-engine journal --today --format=json
+   mta-engine journal --list 5 --format=json
    ```
 
 8. Correlate: which conversations map to which contexts
@@ -60,7 +60,7 @@ Full overview of all coordinated work - use this to plan your day.
     - Worktrees and their coordination status
     - Blockers or dependencies between efforts
     - Open PR status
-    - Journal highlights from today (if any)
+    - Recent journal highlights
 
 ## Output Format
 
@@ -89,9 +89,10 @@ Full overview of all coordinated work - use this to plan your day.
 ### Uncoordinated Worktrees
 - ds9: proj-202-experiment-with-ci-pipeline (no shared context)
 
-### Journal (today)
-- 09:15: Incident response consumed the morning, reprioritizing PROJ-1641
-- (or: No journal entries today)
+### Recent Journal
+- Mar 24 09:15: Incident response consumed the morning, reprioritizing PROJ-1641
+- Mar 23 16:30: Shipped auth fix, unblocked PROJ-1641
+- (or: No journal entries yet)
 
 ### Recent Activity
 - ds5: 2 active sessions

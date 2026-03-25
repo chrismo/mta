@@ -1689,7 +1689,7 @@ cmd_debt() {
 }
 
 cmd_journal() {
-  local format="" mode="" limit_n=10 text="" filter_date=""
+  local format="" mode="" limit_n=10 text="" filter_date="" delete_ts=""
   local -a positional=()
 
   for arg in "$@"; do
@@ -1698,17 +1698,21 @@ cmd_journal() {
       --today) mode="today" ;;
       --date=*) mode="date"; filter_date="${arg#*=}" ;;
       --list) mode="list" ;;
+      --delete) mode="delete" ;;
       --help)
         echo "Usage: mta-engine journal <text>              Add a journal entry"
         echo "       mta-engine journal [--format=json|csv|table]  Show last 10 entries"
         echo "       mta-engine journal --today [--format=...]     Show today's entries"
         echo "       mta-engine journal --date=YYYY-MM-DD [--format=...]  Show entries for a date"
         echo "       mta-engine journal --list [N] [--format=...]  Show last N entries (default 10)"
+        echo "       mta-engine journal --delete <timestamp>       Delete entry by timestamp"
         return 0
         ;;
       --clear) ;; # ignore irrelevant flags
       *)
-        if [[ "$mode" == "list" && "$arg" =~ ^[0-9]+$ && ${#positional[@]} -eq 0 ]]; then
+        if [[ "$mode" == "delete" && -z "$delete_ts" ]]; then
+          delete_ts="$arg"
+        elif [[ "$mode" == "list" && "$arg" =~ ^[0-9]+$ && ${#positional[@]} -eq 0 ]]; then
           limit_n="$arg"
         else
           positional+=("$arg")
@@ -1718,6 +1722,27 @@ cmd_journal() {
   done
 
   ensure_dir
+
+  # Delete mode
+  if [[ "$mode" == "delete" ]]; then
+    if [[ -z "$delete_ts" ]]; then
+      echo "Usage: mta-engine journal --delete <timestamp>" >&2
+      exit 1
+    fi
+    local journal_file="$CONTEXTS_DIR/journal.sup"
+    if [[ ! -f "$journal_file" ]]; then
+      echo "No journal entry with timestamp $delete_ts" >&2
+      exit 1
+    fi
+    if ! grep -q "ts:\"$delete_ts\"" "$journal_file"; then
+      echo "No journal entry with timestamp $delete_ts" >&2
+      exit 1
+    fi
+    grep -v "ts:\"$delete_ts\"" "$journal_file" > "$journal_file.tmp"
+    mv "$journal_file.tmp" "$journal_file"
+    echo "Deleted journal entry at $delete_ts"
+    return 0
+  fi
 
   # If positional text provided and no query mode flag, it's a write
   if [[ ${#positional[@]} -gt 0 && -z "$mode" ]]; then
@@ -1887,6 +1912,7 @@ Journal:
   journal --today [--format=...]   Show today's entries
   journal --date=YYYY-MM-DD [--format=...]  Show entries for a specific date
   journal --list [N] [--format=...]  Show last N entries (default 10)
+  journal --delete <timestamp>     Delete entry by timestamp
 
 Priority:
   set-priority <ticket> <text>     Set priority on a context
