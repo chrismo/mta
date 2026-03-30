@@ -1,12 +1,12 @@
 ---
 name: mta:quiz
-description: Interactive comprehension check on high-RISC unreviewed chunks
+description: Collaborative comprehension check on high-RISC unreviewed chunks
 allowed-tools: Bash
 ---
 
 # Cognitive Debt Quiz
 
-Verify your understanding of what Claude built by answering questions about high-RISC chunks.
+Build shared understanding of what Claude built by working through high-RISC chunks together. Neither of you has the full picture — the human wasn't there when the code was written, and Claude may have misunderstood its own work. The quiz is where you meet in the middle.
 
 ## Usage
 
@@ -84,17 +84,43 @@ Do NOT give up quickly. Follow this discovery chain:
 
       Questions should be specific to the code, NOT generic. Bad: "What is retry logic?"
 
-   d. Evaluate the answer:
-      - The goal is understanding, not perfection
-      - If the human demonstrates they grasp the key concern: mark reviewed
-      - If not: explain what matters and offer to re-ask or move on
+   d. **Assess comprehension together.** After each answer, consider whether
+      the human understands this chunk — not just the surface, but the
+      edge cases, failure modes, and design intent. But remember: you are
+      also fallible here. You may have misread the code, hallucinated a
+      detail, or overstated your own confidence. This is a collaborative
+      exercise between two flawed machines — one carbon, one silicon —
+      trying to build shared understanding. Consider:
+      - Did they get it right, or just close enough?
+      - Could they maintain this code confidently if it broke at 2am?
+      - Have you covered the riskiest aspects of this chunk?
+      - Are YOU sure about the answer you expect? If not, say so.
 
-   e. If satisfied:
+      Based on your assessment:
+      - **Something doesn't add up:** Explain what seems off — maybe the
+        human missed something, or maybe you did. Ask another question
+        probing a different angle. Don't ask permission to continue —
+        just ask the next question.
+      - **Running low on angles to probe:** Say so with hedged language —
+        e.g. "I feel like we've covered the main risk areas on this chunk."
+        This is never deterministic, so don't state it as certainty. Then
+        wait for the human to decide (mark reviewed, skip, or keep going).
+      - **Err toward more questions.** One good answer is not enough. Probe
+        at least 2-3 different aspects before you run out of things to ask.
+        The riskier the chunk (higher RISC), the more thorough you should be.
+      - **Never recommend marking reviewed.** That's the human's call. Your
+        job is to keep probing until you've exhausted the risky angles or
+        the human tells you to move on.
+
+      The human can always say "mark reviewed", "skip", or "stop" at any
+      point to override your assessment.
+
+   e. When the human marks the chunk reviewed:
       ```bash
       mta-engine review-chunk <TICKET> "<summary>"
       ```
 
-3. The human can say:
+3. The human can say at any point:
    - **"skip"** — move to next chunk without marking reviewed
    - **"I reviewed this already"** or **"mark reviewed"** — mark reviewed without answering
    - **"stop"** — end the quiz session
@@ -119,8 +145,26 @@ and what happens when it's exceeded?
 
 > [human answers]
 
-That's correct — the MAX_RETRIES constant caps it at 3, and on exhaustion
-it raises a RetryExhausted error that propagates to the caller.
+That matches what I see in the code — MAX_RETRIES at 3, RetryExhausted
+on exhaustion. I think the backoff logic is the trickier part though:
+
+Question: The backoff uses jitter — what's the range of the first
+retry delay, and why does jitter matter here?
+
+> [human answers]
+
+Yeah, that's my read too. There's one more area I'm less sure about
+myself, but it seems like it could matter in prod:
+
+Question: What happens if the upstream service returns a 429 during
+the retry window? How does that interact with the backoff?
+
+> [human answers]
+
+I feel like we've hit the main risk areas — retry cap, jitter rationale,
+and the 429 interaction. I'm running low on angles to probe here.
+
+> mark reviewed
 
 Marked as reviewed.
 
@@ -140,6 +184,6 @@ Remaining debt: 4 unreviewed | weighted: 18 | 2 high-RISC
 
 - Prioritize high-RISC chunks — those are where misunderstanding is most dangerous
 - Keep questions focused on the "what could go wrong" aspect, not trivia
-- One question per chunk is usually enough — this shouldn't feel like an exam
+- You drive the pace of questions, but never decide when a chunk is "understood." Ask multiple questions probing different angles. Higher RISC = more thorough probing. Remember you can be wrong too — if the human's answer surprises you, consider that they might be right
 - If the commit is no longer in the local git history, note that and ask the human to review the summary/reason instead
 - **Never disguise a discovered gap as a comprehension question.** If you find something uncertain while reading the code, say so directly — the human needs to know whether they're being tested on something verified or consulted about something unknown
