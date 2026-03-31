@@ -48,14 +48,19 @@ Full overview of all coordinated work - use this to plan your day.
    mta-engine journal --list 5 --format=json
    ```
 
-8. Correlate: which conversations map to which contexts
+8. Check pending MTM tasks (cross-cutting manager checklist):
+   ```bash
+   mta-engine mtm-list-tasks --pending --format=json
+   ```
 
-9. **Review open PRs** from `work-context data` output:
+9. Correlate: which conversations map to which contexts
+
+10. **Review open PRs** from `work-context data` output:
    - Match PRs to active contexts/worktrees by branch name
    - Flag PRs needing attention: approved but not merged, changes requested, stale (no updates in 7+ days)
    - Note any PRs not tied to an active context (forgotten work)
 
-10. Output a unified status showing:
+11. Output a unified status showing:
     - Active coordinated efforts (tickets with contexts) and their priorities
     - Worktrees and their coordination status
     - Blockers or dependencies between efforts
@@ -88,6 +93,11 @@ Full overview of all coordinated work - use this to plan your day.
 
 ### Uncoordinated Worktrees
 - ds9: proj-202-experiment-with-ci-pipeline (no shared context)
+
+### MTM Tasks
+- [ ] Review approved PRs
+- [ ] Check CI pipeline config
+- (or: No pending MTM tasks)
 
 ### Recent Journal
 - Mar 24 09:15: Incident response consumed the morning, reprioritizing PROJ-1641

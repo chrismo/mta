@@ -2146,3 +2146,89 @@ cleanup_git_repo() {
   assert_success
   assert_file_contains "contexts.sup" 'priority:"urgent - stakeholder deadline Friday"'
 }
+
+# ==============================================================================
+# MTM Tasks
+# ==============================================================================
+
+@test "mtm-add-task creates mtm-tasks.sup" {
+  run mta mtm-add-task "Review approved PRs"
+  assert_success
+  assert_file_exists "mtm-tasks.sup"
+}
+
+@test "mtm-add-task creates pending task without ticket field" {
+  run mta mtm-add-task "Sarah pinged about deploy issue"
+  assert_success
+  assert_file_contains "mtm-tasks.sup" 'status:"pending"'
+  assert_file_contains "mtm-tasks.sup" 'text:"Sarah pinged about deploy issue"'
+  assert_file_not_contains "mtm-tasks.sup" "ticket:"
+}
+
+@test "mtm-add-task with no text shows usage error" {
+  run mta mtm-add-task
+  assert_failure
+  [[ "$output" == *"Usage"* ]]
+}
+
+@test "mtm-complete-task marks matching task as completed" {
+  mta mtm-add-task "Review approved PRs"
+
+  run mta mtm-complete-task "approved PRs"
+  assert_success
+  assert_file_contains "mtm-tasks.sup" 'status:"completed"'
+}
+
+@test "mtm-complete-task with no match fails" {
+  mta mtm-add-task "Review approved PRs"
+
+  run mta mtm-complete-task "nonexistent"
+  assert_failure
+  [[ "$output" == *"not found"* ]]
+}
+
+@test "mtm-complete-task with no args shows usage error" {
+  run mta mtm-complete-task
+  assert_failure
+  [[ "$output" == *"Usage"* ]]
+}
+
+@test "mtm-list-tasks shows all MTM tasks" {
+  require_super
+  mta mtm-add-task "Task one"
+  mta mtm-add-task "Task two"
+
+  run mta mtm-list-tasks
+  assert_success
+  [[ "$output" == *"Task one"* ]]
+  [[ "$output" == *"Task two"* ]]
+}
+
+@test "mtm-list-tasks --pending filters to pending only" {
+  require_super
+  mta mtm-add-task "Task one"
+  mta mtm-add-task "Task two"
+  mta mtm-complete-task "Task one"
+
+  run mta mtm-list-tasks --pending
+  assert_success
+  [[ "$output" != *"Task one"* ]]
+  [[ "$output" == *"Task two"* ]]
+}
+
+@test "mtm-list-tasks with no tasks shows empty message" {
+  run mta mtm-list-tasks
+  assert_success
+  [[ "$output" == *"No MTM tasks"* ]]
+}
+
+@test "mtm-list-tasks --format=json outputs JSON" {
+  require_super
+  mta mtm-add-task "Check CI config"
+
+  run mta mtm-list-tasks --format=json
+  assert_success
+  [[ "$output" == *"{"* ]]
+  [[ "$output" == *"Check CI config"* ]]
+  [[ "$output" != *"─"* ]]
+}

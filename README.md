@@ -145,6 +145,16 @@ mta-engine journal --list 5                 # Last N entries
 mta-engine journal --list --format=json     # Any query supports --format
 ```
 
+### MTM Tasks
+
+Manager-level checklist — cross-cutting tasks not tied to any ticket.
+
+```bash
+mta-engine mtm-add-task "Sarah pinged about deploy issue"
+mta-engine mtm-complete-task "deploy issue"
+mta-engine mtm-list-tasks --pending
+```
+
 ### Priority
 
 Free-form priority text on context records.
@@ -180,7 +190,8 @@ Data is stored in `~/.claude/contexts/` as `.sup` files:
 ├── tasks.sup       # Outstanding tasks
 ├── blockers.sup    # Active blockers
 ├── chunks.sup      # RISC-graded commit chunks (cognitive debt)
-└── journal.sup     # Manager journal entries
+├── journal.sup     # Manager journal entries
+└── mtm-tasks.sup   # Manager-level tasks (cross-cutting)
 ```
 
 Override with `MTA_CONTEXTS_DIR` environment variable.

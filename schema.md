@@ -66,6 +66,13 @@ Manager journal — freeform timestamped notes not tied to any ticket.
 {ts:"2026-03-19T09:15:00Z",text:"Reprioritizing PROJ-1641 after stakeholder call"}
 ```
 
+### mtm-tasks.sup
+Manager-level tasks — cross-cutting checklist not tied to any ticket.
+```
+{ts:"2026-03-31T09:00:00Z",text:"Review approved PRs",status:"pending"}
+{ts:"2026-03-31T10:00:00Z",text:"Check CI pipeline config",status:"completed"}
+```
+
 ## Example Queries
 
 ```bash
@@ -96,6 +103,9 @@ super -c "from 'journal.sup' | where ts >= '2026-03-19T00:00:00Z' | sort ts desc
 
 # Contexts with priority set
 super -c "from 'contexts.sup' | where archived_at is null and not missing(priority) and priority is not null"
+
+# Pending MTM tasks
+super -c "from 'mtm-tasks.sup' | where status = 'pending' | sort ts desc"
 ```
 
 ## Script Interface
@@ -132,6 +142,11 @@ mta-engine journal <text>            # add a journal entry
 mta-engine journal                   # show last 10 entries
 mta-engine journal --today           # today's entries only
 mta-engine journal --list [N]        # last N entries (default 10)
+
+# MTM Tasks (manager-level)
+mta-engine mtm-add-task <text>
+mta-engine mtm-complete-task <task-text-pattern>
+mta-engine mtm-list-tasks [--pending] [--format=json|csv|table]
 
 # Priority
 mta-engine set-priority <ticket> <text>   # set priority on a context

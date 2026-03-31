@@ -48,18 +48,23 @@ Wind down coordinated work across Claude sessions.
    ```
    Flag contexts where debt grew today (compare chunk timestamps to today's date).
 
-6. **Add EOD journal entry** — ask the user for a brief summary of the day, then record it:
+6. **Check pending MTM tasks** (reminders of what's still undone):
+   ```bash
+   mta-engine mtm-list-tasks --pending --format=json
+   ```
+
+7. **Add EOD journal entry** — ask the user for a brief summary of the day, then record it:
    ```bash
    mta-engine journal "EOD: <user's summary>"
    ```
    If the user declines, skip. The journal captures cross-cutting observations that don't belong to any single ticket.
 
-7. **Review open PRs** from `work-context data 7`:
+8. **Review open PRs** from `work-context data 7`:
    - Flag approved PRs not yet merged (could merge before EOD)
    - Flag PRs with changes requested (need follow-up tomorrow)
    - Note any PRs updated today that are still awaiting review
 
-8. **Output summary**:
+9. **Output summary**:
    ```
    ## End of Day
 
@@ -73,6 +78,10 @@ Wind down coordinated work across Claude sessions.
    ### Cognitive Debt
    - PROJ-1641: 5 unreviewed | weighted: 28 | 3 high-RISC (grew +2 today)
    - Consider `/mta:quiz` or `/mta:premortem` for high-RISC items
+
+   ### MTM Tasks Still Pending
+   - [ ] Review approved PRs (added 2d ago)
+   - (or: All MTM tasks completed today)
 
    ### Coordinated Work
    - PROJ-1641: [status summary] | Tomorrow: [next steps]

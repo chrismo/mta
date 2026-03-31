@@ -513,6 +513,88 @@ cmd_list_tasks() {
   super -j -c "$query" | format_output "$format"
 }
 
+cmd_mtm_add_task() {
+  local text="${1:-}"
+
+  if [[ -z "$text" ]]; then
+    echo "Usage: mta-engine mtm-add-task <text>" >&2
+    exit 1
+  fi
+
+  ensure_dir
+  text=$(escape_sup_text "$text")
+  local record="{ts:\"$(now)\",text:\"$text\",status:\"pending\"}"
+  append_record "mtm-tasks.sup" "$record"
+  echo "MTM task added."
+}
+
+cmd_mtm_complete_task() {
+  local pattern="${1:-}"
+
+  if [[ -z "$pattern" ]]; then
+    echo "Usage: mta-engine mtm-complete-task <task-text-pattern>" >&2
+    exit 1
+  fi
+
+  ensure_dir
+
+  local tasks_file="$CONTEXTS_DIR/mtm-tasks.sup"
+  if [[ ! -f "$tasks_file" ]]; then
+    echo "Error: No MTM tasks found" >&2
+    exit 1
+  fi
+
+  local temp_file
+  temp_file=$(mktemp)
+  local found=false
+
+  while IFS= read -r line; do
+    if [[ "$line" == *"$pattern"* && "$line" == *"status:\"pending\""* && "$found" == "false" ]]; then
+      local new_line
+      new_line=$(echo "$line" | super -s -c "put status:='completed'" -)
+      echo "$new_line" >> "$temp_file"
+      found=true
+    else
+      echo "$line" >> "$temp_file"
+    fi
+  done < "$tasks_file"
+
+  if [[ "$found" == "false" ]]; then
+    rm "$temp_file"
+    echo "Error: Pending MTM task not found matching: $pattern" >&2
+    exit 1
+  fi
+
+  mv "$temp_file" "$tasks_file"
+  echo "MTM task completed."
+}
+
+cmd_mtm_list_tasks() {
+  local pending_only=false format=""
+
+  for arg in "$@"; do
+    case "$arg" in
+      --pending) pending_only=true ;;
+      --format=*) format="${arg#*=}" ;;
+      --*) ;;
+    esac
+  done
+
+  ensure_dir
+  if [[ ! -f "$CONTEXTS_DIR/mtm-tasks.sup" ]]; then
+    echo "No MTM tasks found."
+    return 0
+  fi
+
+  require_super
+
+  local query="from '$CONTEXTS_DIR/mtm-tasks.sup'"
+  [[ "$pending_only" == "true" ]] && query="$query | where status = 'pending'"
+  query="$query | sort ts desc"
+
+  super -j -c "$query" | format_output "$format"
+}
+
 cmd_add_blocker() {
   local ticket="${1:-}"
   local text="${2:-}"
@@ -1941,6 +2023,11 @@ Journal:
   journal --list [N] [--format=...]  Show last N entries (default 10)
   journal --delete <timestamp>     Delete entry by timestamp
 
+MTM Tasks (manager-level):
+  mtm-add-task <text>              Add a cross-cutting task
+  mtm-complete-task <pattern>      Complete matching MTM task
+  mtm-list-tasks [--pending] [--format=json|csv|table]
+
 Priority:
   set-priority <ticket> <text>     Set priority on a context
   set-priority <ticket> --clear    Clear priority
@@ -1999,6 +2086,9 @@ main() {
     unarchive) cmd_unarchive "$@" ;;
     import) cmd_import "$@" ;;
     journal) cmd_journal "$@" ;;
+    mtm-add-task) cmd_mtm_add_task "$@" ;;
+    mtm-complete-task) cmd_mtm_complete_task "$@" ;;
+    mtm-list-tasks) cmd_mtm_list_tasks "$@" ;;
     update) cmd_update "$@" ;;
     set-priority) cmd_set_priority "$@" ;;
     help|--help|-h) cmd_help ;;
