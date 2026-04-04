@@ -141,8 +141,10 @@ Cross-cutting notes for the manager — not tied to any single ticket.
 mta-engine journal "Incident response consumed the day"
 mta-engine journal                          # Show last 10 entries
 mta-engine journal --today                  # Today's entries only
+mta-engine journal --date=YYYY-MM-DD        # Entries for a specific date
 mta-engine journal --list 5                 # Last N entries
 mta-engine journal --list --format=json     # Any query supports --format
+mta-engine journal --delete <timestamp>     # Delete entry by timestamp
 ```
 
 ### MTM Tasks
@@ -164,12 +166,21 @@ mta-engine set-priority <ticket> "urgent - stakeholder deadline Friday"
 mta-engine set-priority <ticket> --clear
 ```
 
+### Update (Shorthand)
+
+```bash
+mta-engine update <ticket> --decision "text"  # alias for add-decision
+mta-engine update <ticket> --task "text"      # alias for add-task
+mta-engine update <ticket> --blocker "text"   # alias for add-blocker
+```
+
 ### Status & Archive
 
 ```bash
 mta-engine status [ticket]  # Full overview
 mta-engine archive <ticket>
 mta-engine unarchive <ticket>
+mta-engine rename-context <old-ticket> <new-ticket>
 ```
 
 ### Migration
@@ -180,21 +191,80 @@ mta-engine import <context.md>  # Import old markdown context into SuperDB
 
 ## Data Storage
 
-Data is stored in `~/.claude/contexts/` as `.sup` files:
+Data is stored in `~/.claude/contexts/` as `.sup` files (SuperDB/ZSON format). Override with `MTA_CONTEXTS_DIR`.
 
+### contexts.sup
+The parent record for each coordination effort.
 ```
-~/.claude/contexts/
-├── contexts.sup    # Parent records for each ticket
-├── sessions.sup    # Active/historical sessions
-├── decisions.sup   # Decision log with timestamps
-├── tasks.sup       # Outstanding tasks
-├── blockers.sup    # Active blockers
-├── chunks.sup      # RISC-graded commit chunks (cognitive debt)
-├── journal.sup     # Manager journal entries
-└── mtm-tasks.sup   # Manager-level tasks (cross-cutting)
+{ticket:"PROJ-1641",title:"Upgrade auth service",created:"2026-01-27T16:32:00Z",archived_at:null,ticket_url:"https://tracker.example.com/...",branch:"proj-101-...",worktree:"wt1",priority:"high"}
 ```
 
-Override with `MTA_CONTEXTS_DIR` environment variable.
+### sessions.sup
+Active/historical sessions linked to contexts.
+```
+{ticket:"PROJ-1641",session_id:"ds5/c342fbfe",joined_at:"2026-01-29T16:30:00Z",left_at:null}
+{ticket:"PROJ-1641",session_id:"ds8",joined_at:"2026-01-27T16:00:00Z",left_at:"2026-01-27T18:25:00Z",status:"handoff",note:"diagnosed EnvType tag issue"}
+```
+
+### decisions.sup
+Decision log with timestamps.
+```
+{ticket:"PROJ-1641",ts:"2026-01-29T20:42:00Z",text:"AUTH MIGRATION E2E VERIFIED"}
+```
+
+### tasks.sup
+Outstanding tasks (incomplete work for future sessions).
+```
+{ticket:"PROJ-1641",ts:"2026-01-29T21:00:00Z",text:"Add deploy permission to dev profile",status:"pending"}
+```
+
+### blockers.sup
+Active blockers (resolved ones can be marked).
+```
+{ticket:"PROJ-1706",ts:"2026-01-29T09:00:00Z",text:"Wiki page requires auth",resolved:null}
+{ticket:"PROJ-1641",ts:"2026-01-27T17:30:00Z",text:"Dashboard metrics not appearing",resolved:"2026-01-27T18:10:00Z"}
+```
+
+### chunks.sup
+RISC-graded commit chunks for cognitive debt tracking.
+```
+{ticket:"PROJ-1641",commit:"abc123",summary:"Add retry logic",risc:7,ts:"2026-01-29T21:10:00Z",reviewed_at:null}
+```
+
+### journal.sup
+Manager journal — freeform timestamped notes not tied to any ticket.
+```
+{ts:"2026-03-19T14:00:00Z",text:"Incident response consumed the day"}
+```
+
+### mtm-tasks.sup
+Manager-level tasks — cross-cutting checklist not tied to any ticket.
+```
+{ts:"2026-03-31T09:00:00Z",text:"Review approved PRs",status:"pending"}
+```
+
+### Example Queries
+
+```bash
+# All active sessions (not yet departed)
+super -c "from 'sessions.sup' | where left_at = null"
+
+# Decisions for a ticket, sorted
+super -c "from 'decisions.sup' | where ticket = 'PROJ-1641' | sort ts"
+
+# Contexts with active session counts
+super -c "
+  from 'contexts.sup'
+  | join (
+      from 'sessions.sup'
+      | where left_at = null
+      | count() by ticket
+    ) on ticket
+"
+
+# Unresolved blockers across all tickets
+super -c "from 'blockers.sup' | where resolved = null"
+```
 
 ## Getting Started
 
@@ -265,10 +335,6 @@ brew tap kaos/shell && brew install bats-assert  # installs bats-assert + bats-s
 bats --jobs 8 test/mta-engine.bats test/mta.bats
 bats --jobs 8 test/work-context.bats
 ```
-
-## Schema
-
-See [schema.md](schema.md) for the full schema specification.
 
 ## License
 
