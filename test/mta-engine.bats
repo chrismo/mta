@@ -342,6 +342,97 @@ load test_helper
 }
 
 # ==============================================================================
+# Rename Context
+# ==============================================================================
+
+@test "rename-context changes ticket in contexts.sup" {
+  mta create-context OLD-1 "My context"
+
+  run mta rename-context OLD-1 NEW-1
+  assert_success
+  [[ "$output" == *"Renamed: OLD-1 -> NEW-1"* ]]
+  assert_file_contains "contexts.sup" 'ticket:"NEW-1"'
+  assert_file_not_contains "contexts.sup" 'ticket:"OLD-1"'
+}
+
+@test "rename-context updates all data files" {
+  require_super
+  mta create-context OLD-1 "My context"
+  mta join OLD-1 test/session1
+  mta add-decision OLD-1 "Use postgres"
+  mta add-task OLD-1 "Write tests"
+  mta add-blocker OLD-1 "Waiting on API"
+  mta add-chunk OLD-1 abc123 "Add retry logic" 5
+
+  mta rename-context OLD-1 NEW-1
+
+  # All files should reference NEW-1, not OLD-1
+  assert_file_contains "sessions.sup" 'ticket:"NEW-1"'
+  assert_file_not_contains "sessions.sup" 'ticket:"OLD-1"'
+  assert_file_contains "decisions.sup" 'ticket:"NEW-1"'
+  assert_file_not_contains "decisions.sup" 'ticket:"OLD-1"'
+  assert_file_contains "tasks.sup" 'ticket:"NEW-1"'
+  assert_file_not_contains "tasks.sup" 'ticket:"OLD-1"'
+  assert_file_contains "blockers.sup" 'ticket:"NEW-1"'
+  assert_file_not_contains "blockers.sup" 'ticket:"OLD-1"'
+  assert_file_contains "chunks.sup" 'ticket:"NEW-1"'
+  assert_file_not_contains "chunks.sup" 'ticket:"OLD-1"'
+}
+
+@test "rename-context preserves other contexts in same files" {
+  require_super
+  mta create-context OLD-1 "My context"
+  mta create-context OTHER-1 "Other context"
+  mta add-decision OLD-1 "Use postgres"
+  mta add-decision OTHER-1 "Use mysql"
+
+  mta rename-context OLD-1 NEW-1
+
+  # OTHER-1 should be untouched
+  assert_file_contains "contexts.sup" 'ticket:"OTHER-1"'
+  assert_file_contains "decisions.sup" 'ticket:"OTHER-1"'
+  # OLD-1 should be renamed
+  assert_file_contains "contexts.sup" 'ticket:"NEW-1"'
+  assert_file_not_contains "contexts.sup" 'ticket:"OLD-1"'
+}
+
+@test "rename-context fails if old context does not exist" {
+  run mta rename-context NONEXISTENT NEW-1
+  assert_failure
+  [[ "$output" == *"not found"* ]]
+}
+
+@test "rename-context fails if new ticket already exists" {
+  mta create-context OLD-1 "My context"
+  mta create-context NEW-1 "Another context"
+
+  run mta rename-context OLD-1 NEW-1
+  assert_failure
+  [[ "$output" == *"already exists"* ]]
+}
+
+@test "rename-context fails with missing arguments" {
+  run mta rename-context
+  assert_failure
+
+  run mta rename-context OLD-1
+  assert_failure
+}
+
+@test "rename-context works on data-queryable context" {
+  require_super
+  mta create-context OLD-1 "My context"
+  mta add-task OLD-1 "Write tests"
+
+  mta rename-context OLD-1 NEW-1
+
+  # Should be queryable under new name
+  run mta list-tasks NEW-1 --pending
+  assert_success
+  [[ "$output" == *"Write tests"* ]]
+}
+
+# ==============================================================================
 # Edge Cases & Error Handling
 # ==============================================================================
 

@@ -792,6 +792,50 @@ cmd_unarchive() {
   echo "Unarchived: $ticket"
 }
 
+cmd_rename_context() {
+  local old_ticket="${1:-}"
+  local new_ticket="${2:-}"
+
+  if [[ -z "$old_ticket" || -z "$new_ticket" ]]; then
+    echo "Usage: mta-engine rename-context <old-ticket> <new-ticket>" >&2
+    exit 1
+  fi
+
+  ensure_dir
+
+  local contexts_file="$CONTEXTS_DIR/contexts.sup"
+  if [[ ! -f "$contexts_file" ]]; then
+    echo "Error: Context not found: $old_ticket" >&2
+    exit 1
+  fi
+
+  # Verify old context exists
+  if ! grep -q "ticket:\"$old_ticket\"" "$contexts_file"; then
+    echo "Error: Context not found: $old_ticket" >&2
+    exit 1
+  fi
+
+  # Verify new ticket doesn't already exist
+  if grep -q "ticket:\"$new_ticket\"" "$contexts_file"; then
+    echo "Error: Context already exists: $new_ticket" >&2
+    exit 1
+  fi
+
+  # Rename ticket in all data files
+  local files=("contexts.sup" "sessions.sup" "decisions.sup" "tasks.sup" "blockers.sup" "chunks.sup")
+  for file in "${files[@]}"; do
+    local filepath="$CONTEXTS_DIR/$file"
+    [[ -f "$filepath" ]] || continue
+
+    local temp_file
+    temp_file=$(mktemp)
+    sed "s/ticket:\"$old_ticket\"/ticket:\"$new_ticket\"/g" "$filepath" > "$temp_file"
+    mv "$temp_file" "$filepath"
+  done
+
+  echo "Renamed: $old_ticket -> $new_ticket"
+}
+
 # ==============================================================================
 # Import Parsers
 # ==============================================================================
@@ -2041,6 +2085,7 @@ Status & Archive:
   status [ticket]
   archive <ticket>
   unarchive <ticket>
+  rename-context <old-ticket> <new-ticket>
 
 Migration:
   import <context.md>              Import old markdown context into SuperDB
@@ -2084,6 +2129,7 @@ main() {
     status) cmd_status "$@" ;;
     archive) cmd_archive "$@" ;;
     unarchive) cmd_unarchive "$@" ;;
+    rename-context) cmd_rename_context "$@" ;;
     import) cmd_import "$@" ;;
     journal) cmd_journal "$@" ;;
     mtm-add-task) cmd_mtm_add_task "$@" ;;
