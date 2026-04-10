@@ -2,9 +2,10 @@
 #
 # claude-slot - Open a new Ghostty tab, cd to a worktree, and start Claude
 #
-# Usage: claude-slot <worktree> [prompt]
+# Usage: claude-slot <worktree> [--resume <session-id>] [prompt]
 #        claude-slot ds5
 #        claude-slot ds5 /mta:join PROJ-123
+#        claude-slot ds5 --resume abc-123-def
 #        claude-slot ds8 /yah
 #
 # Based on: https://github.com/zeitlings/alfred-ghostty-script
@@ -13,10 +14,11 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: claude-slot <worktree> [prompt]"
+    echo "Usage: claude-slot <worktree> [--resume <session-id>] [prompt]"
     echo "Examples:"
     echo "  claude-slot ds5"
     echo "  claude-slot ds5 /mta:join PROJ-123"
+    echo "  claude-slot ds5 --resume abc-123-def"
     echo "  claude-slot ds8 /yah"
 }
 
@@ -27,6 +29,12 @@ fi
 
 worktree="${1:-}"
 shift || true
+
+resume_id=""
+if [[ "${1:-}" == "--resume" ]]; then
+    resume_id="${2:-}"
+    shift 2 || true
+fi
 prompt="${*:-}"
 
 if [[ -z "$worktree" ]]; then
@@ -48,7 +56,9 @@ fi
 # The command to run in the new tab
 # Set terminal title after cd to override any stale title from shell init
 wt_name=$(basename "$wt_path")
-if [[ -n "$prompt" ]]; then
+if [[ -n "$resume_id" ]]; then
+    cmd="cd $wt_path && printf '\\033]0;%s\\007' '$wt_name' && claude --resume $resume_id"
+elif [[ -n "$prompt" ]]; then
     cmd="cd $wt_path && printf '\\033]0;%s\\007' '$wt_name' && claude \"$prompt\""
 else
     cmd="cd $wt_path && printf '\\033]0;%s\\007' '$wt_name' && claude"
@@ -114,7 +124,9 @@ end tell
 
 EOF
 
-if [[ -n "$prompt" ]]; then
+if [[ -n "$resume_id" ]]; then
+    echo "Launched Claude in $worktree (resuming session: $resume_id)"
+elif [[ -n "$prompt" ]]; then
     echo "Launched Claude in $worktree with: $prompt"
 else
     echo "Launched Claude in $worktree"

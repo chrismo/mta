@@ -1,0 +1,222 @@
+#!/bin/bash
+#
+# claude-tabs - Save and restore Ghostty Claude Code sessions
+#
+# Usage: claude-tabs save        Save active sessions to manifest
+#        claude-tabs restore     Restore sessions from manifest
+#        claude-tabs list        Show active sessions (dry-run of save)
+#
+# Detection: No registration or state files. Asks the system what's running
+# via `lsof -c node -a -d cwd -Fn`, which returns the cwd of every node
+# process. Claude Code runs as node, so each session appears here.
+#
+# Cross-references each unique cwd with ~/.claude/projects/<encoded-path>/
+# to filter out non-Claude node processes (e.g. dev servers). The most
+# recently modified .jsonl in the project dir gives the session UUID.
+#
+# Path encoding: /Users/chris/dev/ds5 → -Users-chris-dev-ds5
+# Resume: `claude --resume <session-id>` resumes by UUID.
+#
+# Manifest: ~/.claude/tab-state.json (JSON array of {name, path, session_id})
+#
+# Known limitations:
+#   - Pane layout is lost. lsof sees processes, not terminal geometry.
+#     Sessions in Ghostty panes (splits) are detected and saved correctly,
+#     but restore opens each as a separate tab.
+#   - Multiple sessions in the same directory: lsof deduplicates cwds, so
+#     only the most recent session (by JSONL mtime) is saved.
+#   - Stale session UUIDs: `claude --resume` with an invalid UUID should
+#     fail gracefully or start fresh.
+#   - Resuming an active session: `claude --resume` does not error — it
+#     creates a second writer to the same JSONL. Both instances interleave
+#     on disk but are oblivious to each other in-memory. Not destructive,
+#     but not the intended workflow (save → kill Ghostty → restore).
+#   - Restore adds tabs; it doesn't replace existing ones. Kill Ghostty
+#     first for a clean slate.
+#
+# Pane-aware restore is theoretically possible — Ghostty 1.3+ has AppleScript
+# support for splits (application → windows → tabs → terminals), including
+# creating splits and reading working directories per-terminal. But panes are
+# typically temp helpers, so tabs-only is the practical choice. If needed:
+#   - Save: enumerate terminals per tab via AppleScript to capture groupings
+#   - Restore: create tab, split it, send commands to each pane
+#   - See also: ghostty-workspace (YAML-driven layouts via AppleScript)
+#
+
+set -euo pipefail
+
+CLAUDE_TABS_PROJECTS_DIR="${CLAUDE_TABS_PROJECTS_DIR:-$HOME/.claude/projects}"
+CLAUDE_TABS_MANIFEST="${CLAUDE_TABS_MANIFEST:-$HOME/.claude/tab-state.json}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Functions (sourced by tests)
+# ─────────────────────────────────────────────────────────────────────────────
+
+encode_project_path() {
+  local path="$1"
+  # Strip trailing slash
+  path="${path%/}"
+  # Replace / with -
+  echo "${path//\//-}"
+}
+
+# detect_sessions <lsof_output>
+# Parses lsof -Fn output, cross-references with projects dir, returns JSON array.
+detect_sessions() {
+  local lsof_output="$1"
+  local entries=()
+
+  # Extract unique cwds from lsof output (lines starting with 'n', strip prefix)
+  local unique_cwds
+  unique_cwds=$(echo "$lsof_output" | grep '^n' | sed 's/^n//' | sort -u)
+
+  while IFS= read -r cwd; do
+    if [[ -z "$cwd" ]]; then
+      continue
+    fi
+
+    # Cross-reference with projects dir
+    local encoded
+    encoded=$(encode_project_path "$cwd")
+    local project_dir="$CLAUDE_TABS_PROJECTS_DIR/$encoded"
+
+    if [[ ! -d "$project_dir" ]]; then
+      continue
+    fi
+
+    # Find most recent JSONL
+    local newest_jsonl
+    newest_jsonl=$(ls -t "$project_dir"/*.jsonl 2>/dev/null | head -1)
+    if [[ -z "$newest_jsonl" ]]; then
+      continue
+    fi
+
+    local session_id
+    session_id=$(basename "$newest_jsonl" .jsonl)
+    local name
+    name=$(basename "$cwd")
+
+    entries+=("{\"name\": \"$name\", \"path\": \"$cwd\", \"session_id\": \"$session_id\"}")
+  done <<< "$unique_cwds"
+
+  # Build JSON array
+  if [[ ${#entries[@]} -eq 0 ]]; then
+    echo "[]"
+    return 0
+  fi
+
+  local json="["
+  local first=true
+  for entry in "${entries[@]}"; do
+    if [[ "$first" == true ]]; then
+      first=false
+    else
+      json+=","
+    fi
+    json+=$'\n  '"$entry"
+  done
+  json+=$'\n]'
+  echo "$json"
+}
+
+get_lsof_output() {
+  if [[ -n "${CLAUDE_TABS_LSOF_OUTPUT:-}" ]]; then
+    echo "$CLAUDE_TABS_LSOF_OUTPUT"
+  else
+    lsof -c node -a -d cwd -Fn 2>/dev/null || true
+  fi
+}
+
+cmd_save() {
+  local lsof_output
+  lsof_output=$(get_lsof_output)
+
+  local json
+  json=$(detect_sessions "$lsof_output")
+
+  echo "$json" | super -J - > "$CLAUDE_TABS_MANIFEST"
+
+  local count
+  count=$(echo "$json" | super -f line -c 'unnest this | count()' -)
+  echo "Saved $count sessions to $CLAUDE_TABS_MANIFEST"
+}
+
+cmd_list() {
+  local lsof_output
+  lsof_output=$(get_lsof_output)
+
+  local json
+  json=$(detect_sessions "$lsof_output")
+
+  local count
+  count=$(echo "$json" | super -f line -c 'unnest this | count()' -)
+
+  if [[ "$count" -eq 0 ]]; then
+    echo "No active Claude sessions detected."
+    return 0
+  fi
+
+  echo "$count active Claude sessions:"
+  echo ""
+  echo "$json" | super -f line -c 'unnest this | values name' -
+  echo ""
+  echo "$json" | super -J -
+}
+
+cmd_restore() {
+  local manifest="${1:-$CLAUDE_TABS_MANIFEST}"
+
+  if [[ ! -f "$manifest" ]]; then
+    echo "Manifest not found: $manifest"
+    return 1
+  fi
+
+  local count
+  count=$(super -f line -c 'unnest this | count()' "$manifest")
+  echo "Restoring $count sessions from $manifest"
+
+  # Parse each entry via CSV (skip header line)
+  local i=0
+  while IFS=, read -r path session_id; do
+    if [[ -n "${CLAUDE_TABS_DRY_RUN:-}" ]]; then
+      echo "claude-slot $path --resume $session_id"
+    else
+      echo "Launching: $path (session: $session_id)"
+      claude-slot "$path" --resume "$session_id"
+      # Delay between launches for Ghostty tab creation
+      if [[ $i -lt $((count - 1)) ]]; then
+        sleep 2
+      fi
+    fi
+    ((i++)) || true
+  done < <(super -f csv -c 'unnest this | cut path, session_id' "$manifest" | tail -n +2)
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Main (skipped when sourced)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Guard: when sourced, define functions but don't run main
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0 2>/dev/null || true
+fi
+
+usage() {
+  echo "Usage: claude-tabs <command>"
+  echo ""
+  echo "Commands:"
+  echo "  save      Save active Claude sessions to manifest"
+  echo "  restore   Restore sessions from manifest"
+  echo "  list      Show active sessions (dry-run of save)"
+}
+
+case "${1:-}" in
+  save)    cmd_save ;;
+  restore) shift; cmd_restore "$@" ;;
+  list)    cmd_list ;;
+  -h|--help) usage ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
