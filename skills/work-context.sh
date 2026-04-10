@@ -364,7 +364,7 @@ function search() {
       | put date:=strftime('%Y-%m-%d %H:%M', ts)
       | put project:=split(project, '/')[-1]
       | put prompt:=replace(display[0:100], '\n', ' ')
-      | cut date, project, prompt
+      | cut date, project, sessionId, prompt
       | sort -date
     " "$history_file" 2>/dev/null | mlr --j2p --barred cat
 
