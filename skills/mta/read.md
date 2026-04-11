@@ -15,8 +15,8 @@ See what other Claude sessions have done on a coordinated ticket.
 ```
 
 If ticket is omitted:
-1. Use ticket from earlier `/mta:join` in this session
-2. Or try to detect from branch name (same logic as join)
+1. Look up active context: `mta-engine my-context`
+2. Or detect from branch name (same logic as join)
 3. Or list all contexts: `mta-engine list-contexts`
 
 ## What This Does

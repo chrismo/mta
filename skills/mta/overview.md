@@ -21,7 +21,11 @@ If ticket is omitted, use the context from `/mta:join` or detect from branch.
 After context compaction, this session may not remember having joined a context.
 Do NOT give up quickly. Follow this discovery chain:
 
-1. **Check memory**: Do you remember a ticket from `/mta:join`?
+1. **Look up active context**:
+   ```bash
+   mta-engine my-context
+   ```
+   This auto-detects your session and returns the ticket you joined. Use this first — it survives compaction.
 2. **Detect from branch**: `git branch --show-current` → extract ticket pattern
 3. **Search contexts**:
    ```bash

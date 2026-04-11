@@ -21,7 +21,7 @@ Output a `claude-slot` command to spawn another Claude session on the same workt
    git rev-parse --show-toplevel
    ```
 
-2. **Get current ticket** from session context (the ticket you joined via `/mta:join`)
+2. **Get current ticket**: `mta-engine my-context` (auto-detects session, returns active ticket)
 
 3. **Output the command**:
    ```

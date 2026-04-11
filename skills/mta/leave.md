@@ -14,7 +14,7 @@ Deregister this Claude session from a coordinated effort.
 /mta:leave [ticket]
 ```
 
-If ticket is omitted, use the context from `/mta:join` or detect from branch.
+If ticket is omitted, look up active context with `mta-engine my-context`, or detect from branch.
 
 ## What This Does
 

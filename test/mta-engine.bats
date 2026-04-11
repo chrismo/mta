@@ -159,6 +159,59 @@ load test_helper
 }
 
 # ==============================================================================
+# My Context
+# ==============================================================================
+
+@test "my-context returns ticket for active session" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta join PROJ-1641 ds5/abc123
+
+  run mta my-context ds5/abc123
+  assert_success
+  [[ "$output" == "PROJ-1641" ]]
+}
+
+@test "my-context returns nothing for session that has left" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta join PROJ-1641 ds5/abc123
+  mta leave PROJ-1641 ds5/abc123 done "finished"
+
+  run mta my-context ds5/abc123
+  assert_success
+  [[ -z "$output" ]]
+}
+
+@test "my-context returns latest ticket when session joined multiple" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+  mta create-context PROJ-1670 "CI experiment"
+  mta join PROJ-1641 ds5/abc123
+  mta leave PROJ-1641 ds5/abc123 done "finished"
+  mta join PROJ-1670 ds5/abc123
+
+  run mta my-context ds5/abc123
+  assert_success
+  [[ "$output" == "PROJ-1670" ]]
+}
+
+@test "my-context returns nothing when no sessions exist" {
+  require_super
+  mta create-context PROJ-1641 "Upgrade auth service"
+
+  run mta my-context ds5/abc123
+  assert_success
+  [[ -z "$output" ]]
+}
+
+@test "my-context returns nothing when sessions.sup doesn't exist" {
+  run mta my-context ds5/abc123
+  assert_success
+  [[ -z "$output" ]]
+}
+
+# ==============================================================================
 # Decisions
 # ==============================================================================
 

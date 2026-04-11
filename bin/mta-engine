@@ -385,6 +385,29 @@ cmd_list_sessions() {
   fi
 }
 
+cmd_my_context() {
+  local session_id="${1:-}"
+
+  # Auto-detect session ID if not provided
+  if [[ -z "$session_id" ]]; then
+    session_id=$(cmd_session_id)
+  fi
+
+  # No sessions file = no active context
+  if [[ ! -f "$CONTEXTS_DIR/sessions.sup" ]]; then
+    return 0
+  fi
+
+  require_super
+
+  local ticket
+  ticket=$(super -f line -c "from '$CONTEXTS_DIR/sessions.sup' | where session_id = '$session_id' and left_at is null | sort joined_at desc | head 1 | values ticket" 2>/dev/null || true)
+
+  if [[ -n "$ticket" ]]; then
+    echo "$ticket"
+  fi
+}
+
 cmd_add_decision() {
   local ticket="${1:-}"
   local text="${2:-}"
@@ -2030,6 +2053,7 @@ Session Management:
   session-id                          Auto-detect session identifier
   join <ticket> [session-id]          Session ID auto-detected if omitted
   leave <ticket> <session-id> <status> [note]
+  my-context [session-id]             Print active ticket for session (auto-detected)
   list-sessions [ticket] [--format=json|csv|table]
 
 Decisions:
@@ -2111,6 +2135,7 @@ main() {
     join) cmd_join "$@" ;;
     leave) cmd_leave "$@" ;;
     list-sessions) cmd_list_sessions "$@" ;;
+    my-context) cmd_my_context "$@" ;;
     add-decision) cmd_add_decision "$@" ;;
     list-decisions) cmd_list_decisions "$@" ;;
     add-task) cmd_add_task "$@" ;;

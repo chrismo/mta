@@ -39,7 +39,7 @@ Register this Claude session as part of a coordinated effort on a ticket.
    mta-engine status <TICKET>
    ```
 
-6. Store the ticket reference for this session so `/mta:read` and `/mta:update` know where to read/write
+6. The join is now recorded — other skills can recover it via `mta-engine my-context` even after compaction
 
 ## Output
 
