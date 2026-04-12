@@ -165,7 +165,7 @@ teardown() {
   [[ "$output" == *"Saved 2 sessions"* ]]
 }
 
-@test "list shows sessions without writing manifest" {
+@test "list pipes JSON through grdy for table display" {
   source "$CLAUDE_TABS"
 
   mkdir -p "$CLAUDE_TABS_PROJECTS_DIR/-Users-chrismo-dev-ds5"
@@ -176,9 +176,24 @@ teardown() {
 
   run cmd_list
   [[ "$status" -eq 0 ]]
+  # Should contain box-drawing characters from grdy table
+  [[ "$output" == *"╭"* ]]
   [[ "$output" == *"ds5"* ]]
+  # Should NOT contain the old "active Claude sessions" text
+  [[ "$output" != *"active Claude sessions"* ]]
   # Manifest should NOT be written
   [[ ! -f "$CLAUDE_TABS_MANIFEST" ]]
+}
+
+@test "list with no sessions produces no output" {
+  source "$CLAUDE_TABS"
+
+  mock_lsof="$(printf 'p3616\nn/Users/chrismo/dev/not-a-claude-project\n')"
+  export CLAUDE_TABS_LSOF_OUTPUT="$mock_lsof"
+
+  run cmd_list
+  [[ "$status" -eq 0 ]]
+  [[ -z "$output" ]]
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

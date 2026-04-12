@@ -148,19 +148,7 @@ cmd_list() {
   local json
   json=$(detect_sessions "$lsof_output")
 
-  local count
-  count=$(echo "$json" | super -f line -c 'unnest this | count()' -)
-
-  if [[ "$count" -eq 0 ]]; then
-    echo "No active Claude sessions detected."
-    return 0
-  fi
-
-  echo "$count active Claude sessions:"
-  echo ""
-  echo "$json" | super -f line -c 'unnest this | values name' -
-  echo ""
-  echo "$json" | super -J -
+  echo "$json" | grdy
 }
 
 cmd_restore() {
