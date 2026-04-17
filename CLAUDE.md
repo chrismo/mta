@@ -10,6 +10,10 @@ See [README.md](README.md) for full project docs, installation, usage, and schem
 - `skills/mta/` - MTA worker skills (`/mta:join`, `/mta:read`, `/mta:update`, `/mta:leave`, `/mta:dupe`)
 - `skills/mtm/` - MTM manager skills (`/mtm:update`, `/mtm:start-day`, `/mtm:eod`, `/mtm:new-context`, `/mtm:archive`, `/mtm:slot`, `/mtm:journal`)
 
+## Sandbox
+
+MTA/MTM skills write to `~/.claude/contexts/` via `mta-engine`, which is outside the default sandbox allowlist. If a Bash call fails with "Operation not permitted", tell the user they can run `/sandbox` and add `~/.claude/contexts` to avoid repeated approval prompts.
+
 ## Testing
 
 ```bash
