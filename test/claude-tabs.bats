@@ -214,8 +214,8 @@ MANIFEST
   export CLAUDE_TABS_DRY_RUN=1
   run cmd_restore
   [[ "$status" -eq 0 ]]
-  [[ "$output" == *"claude-slot /Users/chrismo/dev/ds5 --resume abc-123"* ]]
-  [[ "$output" == *"claude-slot /Users/chrismo/dev/mta --resume def-456"* ]]
+  [[ "$output" == *"/Users/chrismo/dev/ds5 --resume abc-123"* ]]
+  [[ "$output" == *"/Users/chrismo/dev/mta --resume def-456"* ]]
 }
 
 @test "restore fails gracefully with missing manifest" {
@@ -228,29 +228,162 @@ MANIFEST
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# batch restore
+# ─────────────────────────────────────────────────────────────────────────────
+
+@test "restore writes per-session cmd files" {
+  source "$CLAUDE_TABS"
+  export CLAUDE_TABS_CMD_DIR="$TEST_DIR/cmd-files"
+
+  # Mock osascript
+  export PATH="$TEST_DIR/bin:$PATH"
+  mkdir -p "$TEST_DIR/bin"
+  printf '#!/bin/bash\ncat > /dev/null\nexit 0\n' > "$TEST_DIR/bin/osascript"
+  chmod +x "$TEST_DIR/bin/osascript"
+
+  cat > "$CLAUDE_TABS_MANIFEST" <<'MANIFEST'
+[
+  {"name": "ds5", "path": "/Users/chrismo/dev/ds5", "session_id": "abc-123"},
+  {"name": "mta", "path": "/Users/chrismo/dev/mta", "session_id": "def-456"}
+]
+MANIFEST
+
+  cmd_restore
+
+  [[ -f "$CLAUDE_TABS_CMD_DIR/cmd-0.txt" ]]
+  [[ -f "$CLAUDE_TABS_CMD_DIR/cmd-1.txt" ]]
+
+  local cmd0
+  cmd0=$(cat "$CLAUDE_TABS_CMD_DIR/cmd-0.txt")
+  [[ "$cmd0" == *"cd /Users/chrismo/dev/ds5"* ]]
+  [[ "$cmd0" == *"claude --resume abc-123"* ]]
+
+  local cmd1
+  cmd1=$(cat "$CLAUDE_TABS_CMD_DIR/cmd-1.txt")
+  [[ "$cmd1" == *"cd /Users/chrismo/dev/mta"* ]]
+  [[ "$cmd1" == *"claude --resume def-456"* ]]
+}
+
+@test "restore invokes osascript exactly once for batch" {
+  source "$CLAUDE_TABS"
+  export CLAUDE_TABS_CMD_DIR="$TEST_DIR/cmd-files"
+  export OSASCRIPT_COUNT_FILE="$TEST_DIR/osascript-count"
+
+  # Mock osascript that counts invocations
+  export PATH="$TEST_DIR/bin:$PATH"
+  mkdir -p "$TEST_DIR/bin"
+  cat > "$TEST_DIR/bin/osascript" <<'MOCK'
+#!/bin/bash
+count_file="${OSASCRIPT_COUNT_FILE}"
+if [[ -f "$count_file" ]]; then
+  count=$(($(cat "$count_file") + 1))
+else
+  count=1
+fi
+echo "$count" > "$count_file"
+cat > /dev/null
+exit 0
+MOCK
+  chmod +x "$TEST_DIR/bin/osascript"
+
+  cat > "$CLAUDE_TABS_MANIFEST" <<'MANIFEST'
+[
+  {"name": "ds5", "path": "/Users/chrismo/dev/ds5", "session_id": "abc-123"},
+  {"name": "mta", "path": "/Users/chrismo/dev/mta", "session_id": "def-456"}
+]
+MANIFEST
+
+  cmd_restore
+
+  [[ -f "$OSASCRIPT_COUNT_FILE" ]]
+  local count
+  count=$(cat "$OSASCRIPT_COUNT_FILE")
+  [[ "$count" -eq 1 ]]
+}
+
+@test "build_restore_applescript includes session count and cmd dir" {
+  source "$CLAUDE_TABS"
+
+  local script
+  script=$(build_restore_applescript "/tmp/test-cmds" 3)
+
+  [[ "$script" == *'set sessionCount to 3'* ]]
+  [[ "$script" == *'/tmp/test-cmds'* ]]
+  [[ "$script" == *'pasteAndRun'* ]]
+  [[ "$script" == *'newTab'* ]]
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# save history
+# ─────────────────────────────────────────────────────────────────────────────
+
+@test "save copies manifest to history dir" {
+  source "$CLAUDE_TABS"
+  export CLAUDE_TABS_HISTORY_DIR="$TEST_DIR/tab-history"
+
+  mkdir -p "$CLAUDE_TABS_PROJECTS_DIR/-Users-chrismo-dev-ds5"
+  touch "$CLAUDE_TABS_PROJECTS_DIR/-Users-chrismo-dev-ds5/abc-123.jsonl"
+
+  export CLAUDE_TABS_LSOF_OUTPUT="$(printf 'p925\nn/Users/chrismo/dev/ds5\n')"
+
+  cmd_save
+
+  [[ -d "$CLAUDE_TABS_HISTORY_DIR" ]]
+  local count
+  count=$(ls "$CLAUDE_TABS_HISTORY_DIR" | wc -l | tr -d ' ')
+  [[ "$count" -eq 1 ]]
+}
+
+@test "save history content matches manifest" {
+  source "$CLAUDE_TABS"
+  export CLAUDE_TABS_HISTORY_DIR="$TEST_DIR/tab-history"
+
+  mkdir -p "$CLAUDE_TABS_PROJECTS_DIR/-Users-chrismo-dev-ds5"
+  touch "$CLAUDE_TABS_PROJECTS_DIR/-Users-chrismo-dev-ds5/abc-123.jsonl"
+
+  export CLAUDE_TABS_LSOF_OUTPUT="$(printf 'p925\nn/Users/chrismo/dev/ds5\n')"
+
+  cmd_save
+
+  local history_file
+  history_file=$(ls "$CLAUDE_TABS_HISTORY_DIR"/*)
+  diff "$CLAUDE_TABS_MANIFEST" "$history_file"
+}
+
+@test "save creates multiple history files on repeated saves" {
+  source "$CLAUDE_TABS"
+  export CLAUDE_TABS_HISTORY_DIR="$TEST_DIR/tab-history"
+
+  mkdir -p "$CLAUDE_TABS_PROJECTS_DIR/-Users-chrismo-dev-ds5"
+  touch "$CLAUDE_TABS_PROJECTS_DIR/-Users-chrismo-dev-ds5/abc-123.jsonl"
+
+  export CLAUDE_TABS_LSOF_OUTPUT="$(printf 'p925\nn/Users/chrismo/dev/ds5\n')"
+
+  cmd_save
+  sleep 1
+  cmd_save
+
+  local count
+  count=$(ls "$CLAUDE_TABS_HISTORY_DIR" | wc -l | tr -d ' ')
+  [[ "$count" -eq 2 ]]
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # claude-slot --resume flag parsing
 # ─────────────────────────────────────────────────────────────────────────────
 
 @test "claude-slot builds resume command" {
-  # claude-slot writes cmd to /tmp/claude-slot/cmd.txt before AppleScript
-  # We can test that by checking the file content (but AppleScript will fail in CI).
-  # Instead, test the command construction logic sourced from claude-slot.
-  # Since claude-slot calls osascript, we need to mock it or just check the cmd file.
-
-  # For now, test that --resume flag is parsed correctly by running with
-  # a mock osascript that just exits
   export PATH="$TEST_DIR/bin:$PATH"
   mkdir -p "$TEST_DIR/bin"
   printf '#!/bin/bash\nexit 0\n' > "$TEST_DIR/bin/osascript"
   chmod +x "$TEST_DIR/bin/osascript"
 
-  # Need a valid worktree path
+  export CLAUDE_SLOT_CMD_DIR="$TEST_DIR/slot-cmd"
   mkdir -p "$TEST_DIR/worktree"
   run "$CLAUDE_SLOT" "$TEST_DIR/worktree" --resume abc-123-def
   [[ "$status" -eq 0 ]]
 
-  # Check the command that was written
-  cmd=$(cat /tmp/claude-slot/cmd.txt)
+  cmd=$(cat "$CLAUDE_SLOT_CMD_DIR/cmd.txt")
   [[ "$cmd" == *"claude --resume abc-123-def"* ]]
 }
 
@@ -260,12 +393,12 @@ MANIFEST
   printf '#!/bin/bash\nexit 0\n' > "$TEST_DIR/bin/osascript"
   chmod +x "$TEST_DIR/bin/osascript"
 
+  export CLAUDE_SLOT_CMD_DIR="$TEST_DIR/slot-cmd"
   mkdir -p "$TEST_DIR/worktree"
   run "$CLAUDE_SLOT" "$TEST_DIR/worktree" --resume abc-123
   [[ "$status" -eq 0 ]]
 
-  cmd=$(cat /tmp/claude-slot/cmd.txt)
-  # Should have --resume, should NOT have a prompt after it
+  cmd=$(cat "$CLAUDE_SLOT_CMD_DIR/cmd.txt")
   [[ "$cmd" == *"claude --resume abc-123"* ]]
   [[ "$cmd" != *"claude --resume abc-123 \""* ]]
 }
@@ -276,11 +409,12 @@ MANIFEST
   printf '#!/bin/bash\nexit 0\n' > "$TEST_DIR/bin/osascript"
   chmod +x "$TEST_DIR/bin/osascript"
 
+  export CLAUDE_SLOT_CMD_DIR="$TEST_DIR/slot-cmd"
   mkdir -p "$TEST_DIR/worktree"
   run "$CLAUDE_SLOT" "$TEST_DIR/worktree" /mta:join PROJ-123
   [[ "$status" -eq 0 ]]
 
-  cmd=$(cat /tmp/claude-slot/cmd.txt)
+  cmd=$(cat "$CLAUDE_SLOT_CMD_DIR/cmd.txt")
   [[ "$cmd" == *'claude "/mta:join PROJ-123"'* ]]
 }
 
@@ -290,11 +424,11 @@ MANIFEST
   printf '#!/bin/bash\nexit 0\n' > "$TEST_DIR/bin/osascript"
   chmod +x "$TEST_DIR/bin/osascript"
 
+  export CLAUDE_SLOT_CMD_DIR="$TEST_DIR/slot-cmd"
   mkdir -p "$TEST_DIR/worktree"
   run "$CLAUDE_SLOT" "$TEST_DIR/worktree"
   [[ "$status" -eq 0 ]]
 
-  cmd=$(cat /tmp/claude-slot/cmd.txt)
-  # Should end with just "claude" (no quotes, no prompt)
+  cmd=$(cat "$CLAUDE_SLOT_CMD_DIR/cmd.txt")
   [[ "$cmd" == *"&& claude" ]]
 }

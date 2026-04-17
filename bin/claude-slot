@@ -65,10 +65,11 @@ else
 fi
 
 # Write command to file before AppleScript (avoids quoting issues with colons)
-mkdir -p /tmp/claude-slot
-printf '%s' "$cmd" > /tmp/claude-slot/cmd.txt
+CLAUDE_SLOT_CMD_DIR="${CLAUDE_SLOT_CMD_DIR:-${TMPDIR:-/tmp}/claude-slot}"
+mkdir -p "$CLAUDE_SLOT_CMD_DIR"
+printf '%s' "$cmd" > "$CLAUDE_SLOT_CMD_DIR/cmd.txt"
 
-osascript <<'EOF'
+osascript <<EOF
 -- Adapted from AlfredGhostty Script
 -- https://github.com/zeitlings/alfred-ghostty-script
 
@@ -111,7 +112,7 @@ else
 end if
 
 -- Copy command from file to clipboard
-do shell script "cat /tmp/claude-slot/cmd.txt | pbcopy"
+do shell script "cat ${CLAUDE_SLOT_CMD_DIR}/cmd.txt | pbcopy"
 delay 0.1
 
 tell application "System Events"

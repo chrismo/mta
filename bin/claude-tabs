@@ -47,6 +47,7 @@ set -euo pipefail
 
 CLAUDE_TABS_PROJECTS_DIR="${CLAUDE_TABS_PROJECTS_DIR:-$HOME/.claude/projects}"
 CLAUDE_TABS_MANIFEST="${CLAUDE_TABS_MANIFEST:-$HOME/.claude/tab-state.json}"
+CLAUDE_TABS_HISTORY_DIR="${CLAUDE_TABS_HISTORY_DIR:-$HOME/.claude/tab-history}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Functions (sourced by tests)
@@ -136,6 +137,10 @@ cmd_save() {
 
   echo "$json" | super -J - > "$CLAUDE_TABS_MANIFEST"
 
+  # Copy to history
+  mkdir -p "$CLAUDE_TABS_HISTORY_DIR"
+  cp "$CLAUDE_TABS_MANIFEST" "$CLAUDE_TABS_HISTORY_DIR/tab-state-$(date +%Y%m%d-%H%M%S).json"
+
   local count
   count=$(echo "$json" | super -f line -c 'unnest this | count()' -)
   echo "Saved $count sessions to $CLAUDE_TABS_MANIFEST"
@@ -151,6 +156,74 @@ cmd_list() {
   echo "$json" | grdy
 }
 
+build_restore_applescript() {
+  local cmd_dir="$1"
+  local count="$2"
+
+  cat <<EOF
+on isRunning()
+    application "Ghostty" is running
+end isRunning
+
+on hasWindows()
+    if not isRunning() then return false
+    tell application "System Events"
+        return exists window 1 of process "Ghostty"
+    end tell
+end hasWindows
+
+on waitForWindow(timeout_s)
+    set end_time to (current date) + timeout_s
+    repeat until hasWindows() or ((current date) > end_time)
+        delay 0.05
+    end repeat
+    return hasWindows()
+end waitForWindow
+
+on pasteAndRun(cmdFile)
+    do shell script "cat " & quoted form of cmdFile & " | pbcopy"
+    delay 0.1
+    tell application "System Events"
+        tell process "Ghostty"
+            keystroke "v" using command down
+            delay 0.1
+            keystroke return
+        end tell
+    end tell
+end pasteAndRun
+
+on newTab()
+    tell application "System Events"
+        keystroke "t" using command down
+    end tell
+    delay 0.5
+end newTab
+
+set cmdDir to "${cmd_dir}"
+set sessionCount to ${count}
+
+set justActivated to not isRunning()
+tell application "Ghostty" to activate
+
+if justActivated then
+    if not waitForWindow(3) then
+        display dialog "Failed to create initial Ghostty window"
+        return
+    end if
+    delay 0.5
+    my pasteAndRun(cmdDir & "/cmd-0.txt")
+    set startIdx to 1
+else
+    set startIdx to 0
+end if
+
+repeat with i from startIdx to (sessionCount - 1)
+    my newTab()
+    my pasteAndRun(cmdDir & "/cmd-" & i & ".txt")
+end repeat
+EOF
+}
+
 cmd_restore() {
   local manifest="${1:-$CLAUDE_TABS_MANIFEST}"
 
@@ -163,21 +236,34 @@ cmd_restore() {
   count=$(super -f line -c 'unnest this | count()' "$manifest")
   echo "Restoring $count sessions from $manifest"
 
-  # Parse each entry via CSV (skip header line)
+  # Write per-session command files
+  local cmd_dir="${CLAUDE_TABS_CMD_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/claude-tabs-restore.XXXXXX")}"
+  mkdir -p "$cmd_dir"
+
   local i=0
   while IFS=, read -r path session_id; do
     if [[ -n "${CLAUDE_TABS_DRY_RUN:-}" ]]; then
       echo "claude-slot $path --resume $session_id"
     else
-      echo "Launching: $path (session: $session_id)"
-      claude-slot "$path" --resume "$session_id"
-      # Delay between launches for Ghostty tab creation
-      if [[ $i -lt $((count - 1)) ]]; then
-        sleep 2
-      fi
+      local wt_name
+      wt_name=$(basename "$path")
+      echo "cd $path && printf '\\033]0;%s\\007' '$wt_name' && claude --resume $session_id" \
+        > "$cmd_dir/cmd-$i.txt"
     fi
     ((i++)) || true
   done < <(super -f csv -c 'unnest this | cut path, session_id' "$manifest" | tail -n +2)
+
+  if [[ -n "${CLAUDE_TABS_DRY_RUN:-}" ]]; then
+    return 0
+  fi
+
+  # Batch restore via single AppleScript invocation
+  build_restore_applescript "$cmd_dir" "$count" | osascript
+
+  # Cleanup temp dir (only if we created it)
+  if [[ -z "${CLAUDE_TABS_CMD_DIR:-}" ]]; then
+    rm -rf "$cmd_dir"
+  fi
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
