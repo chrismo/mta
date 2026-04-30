@@ -44,7 +44,7 @@ fi
 
 mkdir -p "$LOCAL_BIN"
 
-for bin_file in mta mta-engine claude-slot claude-tabs; do
+for bin_file in mta mta-engine; do
   dest="$LOCAL_BIN/$bin_file"
   if [[ -L "$dest" ]] || [[ -f "$dest" ]]; then
     rm "$dest"

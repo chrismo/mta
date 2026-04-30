@@ -319,7 +319,9 @@ super --version
 
 ### Other Tools
 - `/work-context` - Analyze current work context and recommend top priorities
-- `claude-slot` - Opens a Ghostty tab in a worktree and starts Claude (used by `/mtm:slot` and `/mta:dupe`)
+
+### External Dependencies
+- `claude-slot` - Opens a Ghostty tab in a worktree and starts Claude. Used by `/mtm:slot` and `/mta:dupe`. Lives in [claude-rig](https://github.com/chrismo/claude-rig).
 
 ## Running Tests
 
